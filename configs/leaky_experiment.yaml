@@ -1,0 +1,61 @@
+dataset:
+  path: data/raw/leaky_dataset.csv
+  target_column: target
+
+logging:
+  level: INFO
+  file: null
+
+quality_checks:
+  enabled: true
+  missing_values:
+    enabled: true
+    threshold: 0.05
+  duplicates:
+    enabled: true
+  outliers:
+    enabled: true
+    method: iqr
+    threshold: 3.0
+  class_imbalance:
+    enabled: true
+    threshold: 0.1
+  constant_features:
+    enabled: true
+  low_variance:
+    enabled: true
+    threshold: 0.01
+
+leakage_checks:
+  enabled: true
+  target_leakage:
+    enabled: true
+    correlation_threshold: 0.95
+  train_test_overlap:
+    enabled: true
+    test_size: 0.2
+    random_state: 42
+  temporal_leakage:
+    enabled: true
+    date_column: event_date        # columna de fecha presente en leaky_dataset
+  id_column_leakage:
+    enabled: true
+    cardinality_threshold: 0.95
+
+impact_analysis:
+  enabled: true
+  models:
+    - logistic_regression
+    - random_forest
+  cv_folds: 5
+  test_size: 0.2
+  random_state: 42
+  metrics:
+    - accuracy
+    - roc_auc
+    - f1
+
+reporting:
+  output_dir: reports/
+  format: html
+  include_plots: true

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from src.config import get_section, load_config
+from src.leakage_checks import run_all_leakage_checks
 from src.quality_checks import run_all_quality_checks
 from src.utils import FrameworkReport, load_dataset, setup_logger
 
@@ -84,7 +85,12 @@ def main(argv: list[str] | None = None) -> int:
         df, target_col, get_section(config, "quality_checks")
     )
 
-    # Phase 4+: leakage checks
+    # Phase 4 — leakage checks
+    report.leakage_results = run_all_leakage_checks(
+        df, target_col, get_section(config, "leakage_checks")
+    )
+
+    # Phase 5+: impact analysis
     # Phase 5+: impact analysis
     # Phase 6+: report generation
 

@@ -35,8 +35,9 @@ _DEFAULTS: dict[str, Any] = {
     "leakage_checks": {
         "enabled": True,
         "target_leakage": {"enabled": True, "correlation_threshold": 0.95},
-        "train_test_overlap": {"enabled": True},
+        "train_test_overlap": {"enabled": True, "test_size": 0.2, "random_state": 42},
         "temporal_leakage": {"enabled": True, "date_column": None},
+        "id_column_leakage": {"enabled": True, "cardinality_threshold": 0.95},
     },
     "impact_analysis": {
         "enabled": True,

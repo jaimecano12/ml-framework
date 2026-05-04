@@ -35,9 +35,14 @@ leakage_checks:
     correlation_threshold: 0.95
   train_test_overlap:
     enabled: true
+    test_size: 0.2
+    random_state: 42
   temporal_leakage:
     enabled: true
     date_column: null        # set to the name of the date/time column
+  id_column_leakage:
+    enabled: true
+    cardinality_threshold: 0.95   # flag columns where > 95 % of values are unique
 
 impact_analysis:
   enabled: true

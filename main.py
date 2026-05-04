@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from src.config import load_config
 from src.utils import FrameworkReport, load_dataset, setup_logger
 
 
@@ -48,17 +49,33 @@ def main(argv: list[str] | None = None) -> int:
     from loguru import logger
 
     logger.info("ML Framework starting up")
-    logger.info(f"Config   : {args.config}")
-    logger.info(f"Dataset  : {args.dataset}")
-    logger.info(f"Output   : {args.output_dir}")
 
-    # Phase 2+: load config
+    config = load_config(args.config)
+
+    # CLI flags override config values when explicitly provided
+    if args.log_level != "INFO":
+        config["logging"]["level"] = args.log_level
+    if str(args.dataset) != "":
+        config["dataset"]["path"] = str(args.dataset)
+    if str(args.output_dir) != "reports":
+        config["reporting"]["output_dir"] = str(args.output_dir)
+
+    setup_logger(
+        log_level=config["logging"]["level"],
+        log_file=config["logging"].get("file"),
+    )
+
+    logger.info(f"Config      : {args.config}")
+    logger.info(f"Dataset     : {config['dataset']['path']}")
+    logger.info(f"Target col  : {config['dataset']['target_column']}")
+    logger.info(f"Output dir  : {config['reporting']['output_dir']}")
+
     # Phase 3+: quality checks
     # Phase 4+: leakage checks
     # Phase 5+: impact analysis
     # Phase 6+: report generation
 
-    logger.info("Run complete (no checks configured yet — see Phase 2+)")
+    logger.info("Config loaded — ready for Phase 3+")
     return 0
 
 

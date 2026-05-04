@@ -6,7 +6,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from src.config import load_config
+from src.config import get_section, load_config
+from src.quality_checks import run_all_quality_checks
 from src.utils import FrameworkReport, load_dataset, setup_logger
 
 
@@ -70,12 +71,28 @@ def main(argv: list[str] | None = None) -> int:
     logger.info(f"Target col  : {config['dataset']['target_column']}")
     logger.info(f"Output dir  : {config['reporting']['output_dir']}")
 
-    # Phase 3+: quality checks
+    df = load_dataset(config["dataset"]["path"])
+    target_col: str = config["dataset"]["target_column"]
+
+    report = FrameworkReport(
+        dataset_name=Path(config["dataset"]["path"]).stem,
+        metadata={"shape": list(df.shape), "columns": df.columns.tolist()},
+    )
+
+    # Phase 3 — quality checks
+    report.quality_results = run_all_quality_checks(
+        df, target_col, get_section(config, "quality_checks")
+    )
+
     # Phase 4+: leakage checks
     # Phase 5+: impact analysis
     # Phase 6+: report generation
 
-    logger.info("Config loaded — ready for Phase 3+")
+    summary = report.summary()
+    logger.info(
+        f"Run complete — {summary['passed']}/{summary['total_checks']} checks passed, "
+        f"{summary['errors']} error(s), {summary['warnings']} warning(s)."
+    )
     return 0
 
 

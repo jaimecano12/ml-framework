@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ML Framework Report — {{ report.dataset_name }}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+           background: #f0f2f5; color: #222; line-height: 1.5; padding: 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    /* ── Cards ────────────────────────────────────────────────────────── */
+    .card { background: #fff; border-radius: 10px; padding: 24px;
+            margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    h1 { font-size: 1.7rem; color: #1a237e; margin-bottom: 6px; }
+    h2 { font-size: 1.2rem; color: #283593; border-bottom: 2px solid #e8eaf6;
+         padding-bottom: 8px; margin-bottom: 16px; }
+    .meta { color: #666; font-size: .9rem; margin-top: 4px; }
+
+    /* ── Summary grid ─────────────────────────────────────────────────── */
+    .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .sc { text-align: center; border-radius: 8px; padding: 14px 6px; }
+    .sc .num { font-size: 2rem; font-weight: 700; }
+    .sc .lbl { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: #555; }
+    .sc-total   { background: #e3f2fd; } .sc-total   .num { color: #1565c0; }
+    .sc-passed  { background: #e8f5e9; } .sc-passed  .num { color: #2e7d32; }
+    .sc-failed  { background: #fce4ec; } .sc-failed  .num { color: #c62828; }
+    .sc-error   { background: #ffebee; } .sc-error   .num { color: #b71c1c; }
+    .sc-warning { background: #fff8e1; } .sc-warning .num { color: #f57f17; }
+
+    /* ── Tables ───────────────────────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { background: #f5f5f5; padding: 10px 12px; text-align: left;
+         border-bottom: 2px solid #ddd; white-space: nowrap; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .mono { font-family: "SFMono-Regular", Consolas, monospace; font-size: .85rem; }
+    .small { font-size: .82rem; color: #666; max-width: 340px; }
+
+    /* ── Badges ───────────────────────────────────────────────────────── */
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 12px;
+             font-size: .8rem; font-weight: 600; white-space: nowrap; }
+    .b-pass    { background: #c8e6c9; color: #1b5e20; }
+    .b-fail    { background: #ffcdd2; color: #b71c1c; }
+    .b-info    { background: #e3f2fd; color: #1565c0; }
+    .b-warning { background: #fff9c4; color: #f57f17; }
+    .b-error   { background: #ffcdd2; color: #b71c1c; }
+
+    /* ── Delta colouring ─────────────────────────────────────────────── */
+    .delta-neg { color: #c62828; font-weight: 600; }
+    .delta-pos { color: #2e7d32; font-weight: 600; }
+    .delta-neu { color: #555; }
+
+    /* ── Plots ────────────────────────────────────────────────────────── */
+    .plot-wrap { margin-top: 12px; }
+    .plot-wrap h3 { font-size: 1rem; color: #444; margin-bottom: 8px; }
+    .plot-wrap img { max-width: 100%; border-radius: 6px;
+                     box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+
+    /* ── Footer ───────────────────────────────────────────────────────── */
+    .footer { text-align: center; color: #aaa; font-size: .8rem; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="card">
+    <h1>ML Framework Report</h1>
+    <p class="meta">Dataset: <strong>{{ report.dataset_name }}</strong></p>
+    <p class="meta">Generated: <strong>{{ report.run_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') }}</strong></p>
+    {% if report.metadata.get('shape') %}
+    <p class="meta">Shape: <strong>{{ report.metadata['shape'][0] }} rows × {{ report.metadata['shape'][1] }} columns</strong></p>
+    {% endif %}
+    {% if report.metadata.get('target_col') %}
+    <p class="meta">Target column: <strong>{{ report.metadata['target_col'] }}</strong></p>
+    {% endif %}
+  </div>
+
+  <!-- Summary -->
+  {% set s = report.summary() %}
+  <div class="card">
+    <h2>Summary</h2>
+    <div class="summary-grid">
+      <div class="sc sc-total">  <div class="num">{{ s.total_checks }}</div><div class="lbl">Total</div></div>
+      <div class="sc sc-passed"> <div class="num">{{ s.passed }}</div>      <div class="lbl">Passed</div></div>
+      <div class="sc sc-failed"> <div class="num">{{ s.failed }}</div>      <div class="lbl">Failed</div></div>
+      <div class="sc sc-error">  <div class="num">{{ s.errors }}</div>      <div class="lbl">Errors</div></div>
+      <div class="sc sc-warning"><div class="num">{{ s.warnings }}</div>    <div class="lbl">Warnings</div></div>
+    </div>
+  </div>
+
+  {% macro results_table(results) %}
+  <table>
+    <thead>
+      <tr><th>Check</th><th>Status</th><th>Severity</th><th>Message</th><th>Affected columns</th></tr>
+    </thead>
+    <tbody>
+    {% for r in results %}
+    <tr>
+      <td class="mono">{{ r.check_name }}</td>
+      <td><span class="badge {{ 'b-pass' if r.passed else 'b-fail' }}">{{ '✓ PASS' if r.passed else '✗ FAIL' }}</span></td>
+      <td><span class="badge b-{{ r.severity }}">{{ r.severity.upper() }}</span></td>
+      <td>{{ r.message }}</td>
+      <td class="small mono">{{ r.affected_columns | join(', ') if r.affected_columns else '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endmacro %}
+
+  <!-- Quality Checks -->
+  {% if report.quality_results %}
+  <div class="card">
+    <h2>Quality Checks</h2>
+    {{ results_table(report.quality_results) }}
+  </div>
+  {% endif %}
+
+  <!-- Leakage Checks -->
+  {% if report.leakage_results %}
+  <div class="card">
+    <h2>Leakage Checks</h2>
+    {{ results_table(report.leakage_results) }}
+  </div>
+  {% endif %}
+
+  <!-- Impact Analysis -->
+  {% if report.impact_results %}
+  <div class="card">
+    <h2>Impact Analysis</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Model</th><th>Status</th><th>Metric</th>
+          <th>Baseline</th><th>Cleaned</th><th>Δ</th>
+          <th>Dropped columns</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in report.impact_results %}
+      {% set d = r.details %}
+      {% set delta = d.get('delta', 0) %}
+      <tr>
+        <td class="mono">{{ d.get('model', r.check_name) }}</td>
+        <td><span class="badge {{ 'b-pass' if r.passed else 'b-fail' }}">{{ '✓ PASS' if r.passed else '✗ FAIL' }}</span></td>
+        <td>{{ d.get('metric', '—') }}</td>
+        <td>{{ "%.4f" % d.get('baseline_score', 0) }} <span class="small">±{{ "%.4f" % d.get('baseline_std', 0) }}</span></td>
+        <td>{{ "%.4f" % d.get('cleaned_score', 0) }} <span class="small">±{{ "%.4f" % d.get('cleaned_std', 0) }}</span></td>
+        <td class="{{ 'delta-neg' if delta < -0.05 else ('delta-pos' if delta > 0.01 else 'delta-neu') }}">
+          {{ "%+.4f" % delta }}
+        </td>
+        <td class="small mono">{{ d.get('dropped_columns', []) | join(', ') or '—' }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Plots -->
+  {% if plots %}
+  <div class="card">
+    <h2>Visualisations</h2>
+    {% for title, img_b64 in plots.items() %}
+    <div class="plot-wrap">
+      <h3>{{ title }}</h3>
+      <img src="data:image/png;base64,{{ img_b64 }}" alt="{{ title }}">
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card footer">
+    Generated by <strong>ml-framework</strong> &bull; TFM — Dataset Quality &amp; Leakage Detection
+  </div>
+
+</div>
+</body>
+</html>

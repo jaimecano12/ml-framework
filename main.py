@@ -7,8 +7,10 @@ import sys
 from pathlib import Path
 
 from src.config import get_section, load_config
+from src.impact_analysis import run_impact_analysis
 from src.leakage_checks import run_all_leakage_checks
 from src.quality_checks import run_all_quality_checks
+from src.reporting import generate_report
 from src.utils import FrameworkReport, load_dataset, setup_logger
 
 
@@ -77,7 +79,11 @@ def main(argv: list[str] | None = None) -> int:
 
     report = FrameworkReport(
         dataset_name=Path(config["dataset"]["path"]).stem,
-        metadata={"shape": list(df.shape), "columns": df.columns.tolist()},
+        metadata={
+            "shape": list(df.shape),
+            "columns": df.columns.tolist(),
+            "target_col": target_col,
+        },
     )
 
     # Phase 3 — quality checks
@@ -90,9 +96,16 @@ def main(argv: list[str] | None = None) -> int:
         df, target_col, get_section(config, "leakage_checks")
     )
 
-    # Phase 5+: impact analysis
-    # Phase 5+: impact analysis
-    # Phase 6+: report generation
+    # Phase 5 — impact analysis
+    report.impact_results = run_impact_analysis(
+        df, target_col, report, get_section(config, "impact_analysis")
+    )
+
+    # Phase 6 — report generation
+    output_dir = Path(config["reporting"]["output_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report_path = generate_report(report, output_dir, get_section(config, "reporting"))
+    logger.info(f"Report saved to: {report_path}")
 
     summary = report.summary()
     logger.info(

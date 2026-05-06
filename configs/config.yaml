@@ -58,6 +58,20 @@ impact_analysis:
     - roc_auc
     - f1
 
+feature_analysis:
+  enabled: true
+  feature_correlation:
+    enabled: true
+    correlation_threshold: 0.90   # flag pairs with |r| >= this value
+  feature_relevance:
+    enabled: true
+    mi_threshold: 0.01            # normalised mutual information threshold
+    random_state: 42
+  distribution_shape:
+    enabled: true
+    skewness_threshold: 2.0       # |skewness| above this triggers warning
+    kurtosis_threshold: 7.0       # excess kurtosis above this triggers warning
+
 reporting:
   output_dir: reports/
   format: html               # html (pdf support added in Phase 6)

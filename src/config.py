@@ -47,6 +47,12 @@ _DEFAULTS: dict[str, Any] = {
         "random_state": 42,
         "metrics": ["accuracy", "roc_auc", "f1"],
     },
+    "feature_analysis": {
+        "enabled": True,
+        "feature_correlation": {"enabled": True, "correlation_threshold": 0.90},
+        "feature_relevance":   {"enabled": True, "mi_threshold": 0.01, "random_state": 42},
+        "distribution_shape":  {"enabled": True, "skewness_threshold": 2.0, "kurtosis_threshold": 7.0},
+    },
     "reporting": {
         "output_dir": "reports/",
         "format": "html",
@@ -174,6 +180,19 @@ def _validate(config: dict[str, Any]) -> None:
     cv_folds = ia.get("cv_folds", 5)
     if not isinstance(cv_folds, int) or cv_folds < 2:
         errors.append(f"impact_analysis.cv_folds must be an integer >= 2, got {cv_folds}.")
+
+    # feature_analysis
+    fa = config.get("feature_analysis", {})
+    fa_corr_t = fa.get("feature_correlation", {}).get("correlation_threshold")
+    if fa_corr_t is not None and not (0.0 <= fa_corr_t <= 1.0):
+        errors.append(
+            f"feature_analysis.feature_correlation.correlation_threshold must be in [0, 1], got {fa_corr_t}."
+        )
+    fa_mi_t = fa.get("feature_relevance", {}).get("mi_threshold")
+    if fa_mi_t is not None and not (0.0 <= fa_mi_t <= 1.0):
+        errors.append(
+            f"feature_analysis.feature_relevance.mi_threshold must be in [0, 1], got {fa_mi_t}."
+        )
 
     # reporting
     fmt = config.get("reporting", {}).get("format", "html")

@@ -18,6 +18,29 @@
          padding-bottom: 8px; margin-bottom: 16px; }
     .meta { color: #666; font-size: .9rem; margin-top: 4px; }
 
+    /* ── Readiness score banner ───────────────────────────────────────── */
+    .score-banner { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+    .grade-circle { width: 90px; height: 90px; border-radius: 50%; display: flex;
+                    flex-direction: column; align-items: center; justify-content: center;
+                    font-weight: 800; flex-shrink: 0; }
+    .grade-A { background: #c8e6c9; color: #1b5e20; }
+    .grade-B { background: #dcedc8; color: #33691e; }
+    .grade-C { background: #fff9c4; color: #f57f17; }
+    .grade-D { background: #ffe0b2; color: #e65100; }
+    .grade-F { background: #ffcdd2; color: #b71c1c; }
+    .grade-circle .g-letter { font-size: 2.2rem; line-height: 1; }
+    .grade-circle .g-score  { font-size: .8rem; }
+    .dim-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+    .dim-card { background: #f5f5f5; border-radius: 8px; padding: 10px 12px; }
+    .dim-card .d-name  { font-size: .75rem; text-transform: uppercase; color: #666; letter-spacing: .04em; }
+    .dim-card .d-score { font-size: 1.5rem; font-weight: 700; }
+    .dim-card .d-bar   { height: 6px; border-radius: 3px; background: #ddd; margin-top: 4px; }
+    .dim-card .d-fill  { height: 100%; border-radius: 3px; }
+    .fill-green  { background: #66bb6a; }
+    .fill-yellow { background: #ffb74d; }
+    .fill-red    { background: #ef5350; }
+    .score-label { font-size: .95rem; color: #444; margin-top: 4px; }
+
     /* ── Summary grid ─────────────────────────────────────────────────── */
     .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
     .sc { text-align: center; border-radius: 8px; padding: 14px 6px; }
@@ -46,11 +69,25 @@
     .b-info    { background: #e3f2fd; color: #1565c0; }
     .b-warning { background: #fff9c4; color: #f57f17; }
     .b-error   { background: #ffcdd2; color: #b71c1c; }
+    .b-high    { background: #ffcdd2; color: #b71c1c; }
+    .b-medium  { background: #fff9c4; color: #f57f17; }
+    .b-low     { background: #e8f5e9; color: #2e7d32; }
 
     /* ── Delta colouring ─────────────────────────────────────────────── */
     .delta-neg { color: #c62828; font-weight: 600; }
     .delta-pos { color: #2e7d32; font-weight: 600; }
     .delta-neu { color: #555; }
+
+    /* ── Recommendations ─────────────────────────────────────────────── */
+    .rec-item { border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 16px;
+                margin-bottom: 12px; }
+    .rec-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .rec-action { font-weight: 600; font-size: .95rem; }
+    .rec-rationale { color: #555; font-size: .88rem; margin-bottom: 8px; }
+    details summary { cursor: pointer; color: #1565c0; font-size: .85rem; user-select: none; }
+    details pre { background: #f5f5f5; border-radius: 6px; padding: 10px 14px;
+                  font-size: .82rem; overflow-x: auto; margin-top: 6px;
+                  font-family: "SFMono-Regular", Consolas, monospace; }
 
     /* ── Plots ────────────────────────────────────────────────────────── */
     .plot-wrap { margin-top: 12px; }
@@ -77,6 +114,38 @@
     <p class="meta">Target column: <strong>{{ report.metadata['target_col'] }}</strong></p>
     {% endif %}
   </div>
+
+  <!-- Readiness Score (Phase 10) -->
+  {% if report.readiness_score %}
+  {% set rs = report.readiness_score %}
+  <div class="card">
+    <h2>Dataset Readiness Score</h2>
+    <div class="score-banner">
+      <div class="grade-circle grade-{{ rs.grade }}">
+        <span class="g-letter">{{ rs.grade }}</span>
+        <span class="g-score">{{ rs.overall }}/100</span>
+      </div>
+      <div>
+        <p style="font-size:1.05rem; font-weight:600; color:#333;">{{ rs.label }}</p>
+        <div class="dim-grid">
+          {% for dim_name, dim in [('Quality', rs.quality), ('Leakage', rs.leakage), ('Features', rs.features), ('Sufficiency', rs.sufficiency)] %}
+          <div class="dim-card">
+            <div class="d-name">{{ dim_name }}</div>
+            <div class="d-score" style="color: {% if dim.score >= 70 %}#2e7d32{% elif dim.score >= 40 %}#f57f17{% else %}#c62828{% endif %}">{{ dim.score }}</div>
+            <div class="d-bar">
+              <div class="d-fill {% if dim.score >= 70 %}fill-green{% elif dim.score >= 40 %}fill-yellow{% else %}fill-red{% endif %}"
+                   style="width: {{ dim.score }}%"></div>
+            </div>
+            {% if dim.checks_total > 0 %}
+            <div style="font-size:.75rem; color:#888; margin-top:3px;">{{ dim.checks_passed }}/{{ dim.checks_total }} checks</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Summary -->
   {% set s = report.summary() %}
@@ -126,6 +195,14 @@
   </div>
   {% endif %}
 
+  <!-- Feature Analysis (Phase 9) -->
+  {% if report.feature_results %}
+  <div class="card">
+    <h2>Feature Analysis</h2>
+    {{ results_table(report.feature_results) }}
+  </div>
+  {% endif %}
+
   <!-- Impact Analysis -->
   {% if report.impact_results %}
   <div class="card">
@@ -156,6 +233,35 @@
       {% endfor %}
       </tbody>
     </table>
+  </div>
+  {% endif %}
+
+  <!-- Recommendations (Phase 8) -->
+  {% if report.recommendations %}
+  <div class="card">
+    <h2>Recommendations</h2>
+    <p class="meta" style="margin-bottom:16px;">
+      {{ report.recommendations | length }} actionable suggestion(s) —
+      {{ report.recommendations | selectattr('priority', 'equalto', 'high') | list | length }} high,
+      {{ report.recommendations | selectattr('priority', 'equalto', 'medium') | list | length }} medium,
+      {{ report.recommendations | selectattr('priority', 'equalto', 'low') | list | length }} low priority.
+    </p>
+    {% for rec in report.recommendations %}
+    <div class="rec-item">
+      <div class="rec-header">
+        <span class="badge b-{{ rec.priority }}">{{ rec.priority.upper() }}</span>
+        <span class="mono" style="font-size:.8rem; color:#888;">{{ rec.check_name }}</span>
+        <span class="rec-action">{{ rec.action }}</span>
+      </div>
+      <p class="rec-rationale">{{ rec.rationale }}</p>
+      {% if rec.code_snippet %}
+      <details>
+        <summary>▶ Show code example</summary>
+        <pre>{{ rec.code_snippet }}</pre>
+      </details>
+      {% endif %}
+    </div>
+    {% endfor %}
   </div>
   {% endif %}
 

@@ -119,6 +119,31 @@ def _plot_impact_comparison(report: FrameworkReport) -> str:
     return _fig_to_b64(fig)
 
 
+def _plot_feature_relevance(report: FrameworkReport) -> str:
+    """Horizontal bar chart of normalised mutual information scores."""
+    scores: dict[str, float] = {}
+    for r in report.feature_results:
+        if r.check_name == "feature_relevance" and "all_scores" in r.details:
+            scores = r.details["all_scores"]
+            break
+    if not scores:
+        return ""
+
+    sorted_items = sorted(scores.items(), key=lambda x: x[1])
+    features = [i[0] for i in sorted_items]
+    values   = [i[1] for i in sorted_items]
+    colours  = ["#ef9a9a" if v < 0.01 else "#66bb6a" for v in values]
+
+    fig, ax = plt.subplots(figsize=(7, max(2.5, len(features) * 0.4 + 1)))
+    ax.barh(features, values, color=colours)
+    ax.axvline(x=0.01, color="#e53935", linestyle="--", linewidth=1, label="threshold (0.01)")
+    ax.set_xlabel("Normalised Mutual Information")
+    ax.set_title("Feature relevance scores (relative to most informative feature)")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -150,6 +175,8 @@ def generate_report(
         _safe_add_plot(plots, "Severity distribution", _plot_severity_distribution, report)
         _safe_add_plot(plots, "Impact analysis — baseline vs. cleaned",
                        _plot_impact_comparison, report)
+        _safe_add_plot(plots, "Feature mutual information scores",
+                       _plot_feature_relevance, report)
 
     env = Environment(loader=FileSystemLoader(str(_TEMPLATES_DIR)), autoescape=False)
     template = env.get_template("report.html.j2")

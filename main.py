@@ -7,10 +7,13 @@ import sys
 from pathlib import Path
 
 from src.config import get_section, load_config
+from src.feature_analysis import run_all_feature_checks
 from src.impact_analysis import run_impact_analysis
 from src.leakage_checks import run_all_leakage_checks
 from src.quality_checks import run_all_quality_checks
+from src.recommendations import generate_recommendations
 from src.reporting import generate_report
+from src.scoring import compute_readiness_score
 from src.utils import FrameworkReport, load_dataset, setup_logger
 
 
@@ -19,30 +22,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="ml-framework",
         description="Automated framework for dataset quality assessment and data leakage detection.",
     )
-    parser.add_argument(
-        "--config",
-        type=Path,
-        default=Path("configs/config.yaml"),
-        help="Path to the YAML configuration file (default: configs/config.yaml).",
-    )
-    parser.add_argument(
-        "--dataset",
-        type=Path,
-        required=True,
-        help="Path to the input dataset (CSV, Parquet, or Excel).",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("reports"),
-        help="Directory where the generated report will be saved (default: reports/).",
-    )
-    parser.add_argument(
-        "--log-level",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="Logging verbosity (default: INFO).",
-    )
+    parser.add_argument("--config",    type=Path, default=Path("configs/config.yaml"))
+    parser.add_argument("--dataset",   type=Path, required=True)
+    parser.add_argument("--output-dir",type=Path, default=Path("reports"))
+    parser.add_argument("--log-level", default="INFO",
+                        choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     return parser.parse_args(argv)
 
 
@@ -56,7 +40,6 @@ def main(argv: list[str] | None = None) -> int:
 
     config = load_config(args.config)
 
-    # CLI flags override config values when explicitly provided
     if args.log_level != "INFO":
         config["logging"]["level"] = args.log_level
     if str(args.dataset) != "":
@@ -96,10 +79,21 @@ def main(argv: list[str] | None = None) -> int:
         df, target_col, get_section(config, "leakage_checks")
     )
 
+    # Phase 9 — feature analysis
+    report.feature_results = run_all_feature_checks(
+        df, target_col, get_section(config, "feature_analysis")
+    )
+
     # Phase 5 — impact analysis
     report.impact_results = run_impact_analysis(
         df, target_col, report, get_section(config, "impact_analysis")
     )
+
+    # Phase 8 — recommendations
+    report.recommendations = generate_recommendations(report)
+
+    # Phase 10 — readiness score
+    report.readiness_score = compute_readiness_score(report)
 
     # Phase 6 — report generation
     output_dir = Path(config["reporting"]["output_dir"])
@@ -109,8 +103,10 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = report.summary()
     logger.info(
-        f"Run complete — {summary['passed']}/{summary['total_checks']} checks passed, "
-        f"{summary['errors']} error(s), {summary['warnings']} warning(s)."
+        f"Run complete — {summary['passed']}/{summary['total_checks']} checks passed "
+        f"| Score: {summary.get('readiness_score', 'n/a')}/100 "
+        f"Grade: {summary.get('readiness_grade', '?')} "
+        f"| {summary['errors']} error(s), {summary['warnings']} warning(s)."
     )
     return 0
 

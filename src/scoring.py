@@ -139,7 +139,12 @@ def compute_readiness_score(report: FrameworkReport) -> ReadinessScore:
     quality     = _score_results(report.quality_results,  _DIMENSION_MULTIPLIERS["quality"])
     leakage     = _score_results(report.leakage_results,  _DIMENSION_MULTIPLIERS["leakage"])
     features    = _score_results(report.feature_results,  _DIMENSION_MULTIPLIERS["features"])
-    sufficiency = _sufficiency_score(report.metadata)
+    # Phase 11: use actual sufficiency check results when available
+    sufficiency = (
+        _score_results(report.sufficiency_results)
+        if report.sufficiency_results
+        else _sufficiency_score(report.metadata)
+    )
 
     overall = round(
         quality.score     * _DIMENSION_WEIGHTS["quality"]

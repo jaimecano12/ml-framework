@@ -76,3 +76,32 @@ reporting:
   output_dir: reports/
   format: html               # html (pdf support added in Phase 6)
   include_plots: true
+
+sufficiency_checks:
+  enabled: true
+  sample_size:
+    enabled: true
+    min_rows: 100
+    comfortable_ratio: 50.0
+  class_support:
+    enabled: true
+    min_samples_per_class: 30
+  cv_stability:
+    enabled: true
+    max_cv_std: 0.10
+  feature_to_sample_ratio:
+    enabled: true
+    max_ratio: 0.10
+
+drift_checks:
+  enabled: true
+  covariate_drift:
+    enabled: true
+    alpha: 0.05
+    date_column: null
+  label_drift:
+    enabled: true
+    alpha: 0.05
+    date_column: null
+
+plugins: []    # list of dotted module paths to load at startup

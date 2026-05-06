@@ -53,6 +53,19 @@ _DEFAULTS: dict[str, Any] = {
         "feature_relevance":   {"enabled": True, "mi_threshold": 0.01, "random_state": 42},
         "distribution_shape":  {"enabled": True, "skewness_threshold": 2.0, "kurtosis_threshold": 7.0},
     },
+    "sufficiency_checks": {
+        "enabled": True,
+        "sample_size":             {"enabled": True, "min_rows": 100, "comfortable_ratio": 50.0},
+        "class_support":           {"enabled": True, "min_samples_per_class": 30},
+        "cv_stability":            {"enabled": True, "max_cv_std": 0.10},
+        "feature_to_sample_ratio": {"enabled": True, "max_ratio": 0.10},
+    },
+    "drift_checks": {
+        "enabled": True,
+        "covariate_drift": {"enabled": True, "alpha": 0.05, "date_column": None},
+        "label_drift":     {"enabled": True, "alpha": 0.05, "date_column": None},
+    },
+    "plugins": [],
     "reporting": {
         "output_dir": "reports/",
         "format": "html",

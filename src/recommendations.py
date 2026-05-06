@@ -294,24 +294,150 @@ def _rec_distribution_shape(r: CheckResult) -> list[Recommendation]:
     )]
 
 
+def _rec_sample_size(r: CheckResult) -> list[Recommendation]:
+    n = r.details.get("n_rows", "?")
+    return [Recommendation(
+        check_name="sample_size",
+        priority="high" if r.severity == "error" else "medium",
+        action="Collect more data or apply data augmentation",
+        rationale=(
+            f"Dataset has {n} rows. Small datasets produce unreliable CV estimates, "
+            "increase overfitting risk, and make per-class metrics unstable."
+        ),
+        code_snippet=(
+            "# Option 1: Oversample with SMOTE (classification)\n"
+            "from imblearn.over_sampling import SMOTE\n"
+            "X_res, y_res = SMOTE(random_state=42).fit_resample(X, y)\n\n"
+            "# Option 2: Augment with noise for tabular data\n"
+            "noise = pd.DataFrame(X.values + 0.01 * np.random.randn(*X.shape),\n"
+            "                     columns=X.columns)\n"
+            "X_aug = pd.concat([X, noise]).reset_index(drop=True)"
+        ),
+    )]
+
+
+def _rec_class_support(r: CheckResult) -> list[Recommendation]:
+    insufficient = r.details.get("insufficient_classes", {})
+    return [Recommendation(
+        check_name="class_support",
+        priority="high",
+        action=f"Increase support for under-represented classes: {list(insufficient.keys())}",
+        rationale="Classes with very few samples produce unreliable per-class metrics and "
+                  "may be entirely absent from some CV folds, causing errors.",
+        code_snippet=(
+            "from imblearn.over_sampling import SMOTE\n"
+            "X_res, y_res = SMOTE(random_state=42).fit_resample(X, y)\n\n"
+            "# Or: use stratified k-fold to ensure class representation\n"
+            "from sklearn.model_selection import StratifiedKFold\n"
+            "cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)"
+        ),
+    )]
+
+
+def _rec_cv_stability(r: CheckResult) -> list[Recommendation]:
+    return [Recommendation(
+        check_name="cv_stability",
+        priority="medium",
+        action="Reduce CV variance by increasing dataset size or using repeated k-fold",
+        rationale="High CV standard deviation means performance estimates are unreliable — "
+                  "the true model performance could differ significantly from the reported score.",
+        code_snippet=(
+            "from sklearn.model_selection import RepeatedStratifiedKFold\n"
+            "# Repeat 10 times to get more stable estimates\n"
+            "cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=10, random_state=42)\n"
+            "scores = cross_val_score(model, X, y, cv=cv, scoring='accuracy')\n"
+            "print(f'Mean: {scores.mean():.3f} ± {scores.std():.3f}')"
+        ),
+    )]
+
+
+def _rec_feature_to_sample_ratio(r: CheckResult) -> list[Recommendation]:
+    ratio = r.details.get("p_n_ratio", "?")
+    return [Recommendation(
+        check_name="feature_to_sample_ratio",
+        priority="high" if r.severity == "error" else "medium",
+        action=f"Reduce feature count (p/n={ratio}) via feature selection or PCA",
+        rationale="Too many features relative to samples causes overfitting — the model "
+                  "memorises training noise instead of learning generalisable patterns.",
+        code_snippet=(
+            "# Option 1: Select top-k features by importance\n"
+            "from sklearn.feature_selection import SelectFromModel\n"
+            "from sklearn.ensemble import RandomForestClassifier\n"
+            "selector = SelectFromModel(RandomForestClassifier(n_estimators=50))\n"
+            "X_sel = selector.fit_transform(X, y)\n\n"
+            "# Option 2: Dimensionality reduction with PCA\n"
+            "from sklearn.decomposition import PCA\n"
+            "pca = PCA(n_components=0.95)  # keep 95 % of variance\n"
+            "X_pca = pca.fit_transform(X)"
+        ),
+    )]
+
+
+def _rec_covariate_drift(r: CheckResult) -> list[Recommendation]:
+    features = r.affected_columns
+    return [Recommendation(
+        check_name="covariate_drift",
+        priority="high",
+        action=f"Investigate distribution shift in: {features}",
+        rationale="Different feature distributions in different data periods mean the model "
+                  "trained on early data may not generalise to recent data.",
+        code_snippet=(
+            "# Diagnose with time-based split\n"
+            "df_train = df[df[date_col] < split_date]\n"
+            "df_test  = df[df[date_col] >= split_date]\n\n"
+            "# Compute PSI for each feature\n"
+            "for col in numeric_cols:\n"
+            "    psi = compute_psi(df_train[col], df_test[col])\n"
+            "    print(f'{col}: PSI = {psi:.3f}')"
+        ),
+    )]
+
+
+def _rec_label_drift(r: CheckResult) -> list[Recommendation]:
+    return [Recommendation(
+        check_name="label_drift",
+        priority="high",
+        action="Investigate target distribution shift across time periods",
+        rationale="A changing label distribution means the underlying phenomenon being "
+                  "predicted has changed — retraining on recent data only may be necessary.",
+        code_snippet=(
+            "# Re-weight training samples by recency\n"
+            "days_old = (df[date_col].max() - df[date_col]).dt.days\n"
+            "weights  = np.exp(-days_old / 365)  # exponential decay\n"
+            "model.fit(X_train, y_train, sample_weight=weights_train)"
+        ),
+    )]
+
+
 # ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
 
 _RECOMMENDATION_MAP = {
-    "missing_values":      _rec_missing_values,
-    "duplicates":          _rec_duplicates,
-    "outliers":            _rec_outliers,
-    "class_imbalance":     _rec_class_imbalance,
-    "constant_features":   _rec_constant_features,
-    "low_variance":        _rec_low_variance,
-    "target_leakage":      _rec_target_leakage,
-    "train_test_overlap":  _rec_train_test_overlap,
-    "temporal_leakage":    _rec_temporal_leakage,
-    "id_column_leakage":   _rec_id_column_leakage,
-    "feature_correlation": _rec_feature_correlation,
-    "feature_relevance":   _rec_feature_relevance,
-    "distribution_shape":  _rec_distribution_shape,
+    # Quality
+    "missing_values":           _rec_missing_values,
+    "duplicates":               _rec_duplicates,
+    "outliers":                 _rec_outliers,
+    "class_imbalance":          _rec_class_imbalance,
+    "constant_features":        _rec_constant_features,
+    "low_variance":             _rec_low_variance,
+    # Leakage
+    "target_leakage":           _rec_target_leakage,
+    "train_test_overlap":       _rec_train_test_overlap,
+    "temporal_leakage":         _rec_temporal_leakage,
+    "id_column_leakage":        _rec_id_column_leakage,
+    # Feature analysis
+    "feature_correlation":      _rec_feature_correlation,
+    "feature_relevance":        _rec_feature_relevance,
+    "distribution_shape":       _rec_distribution_shape,
+    # Sufficiency
+    "sample_size":              _rec_sample_size,
+    "class_support":            _rec_class_support,
+    "cv_stability":             _rec_cv_stability,
+    "feature_to_sample_ratio":  _rec_feature_to_sample_ratio,
+    # Drift
+    "covariate_drift":          _rec_covariate_drift,
+    "label_drift":              _rec_label_drift,
 }
 
 _PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
@@ -332,6 +458,8 @@ def generate_recommendations(report: FrameworkReport) -> list[Recommendation]:
         report.quality_results
         + report.leakage_results
         + report.feature_results
+        + report.sufficiency_results
+        + report.drift_results
     )
 
     for result in all_results:

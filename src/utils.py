@@ -173,18 +173,20 @@ class FrameworkReport:
 
     dataset_name: str
     run_timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    quality_results:  list[CheckResult]  = field(default_factory=list)
-    leakage_results:  list[CheckResult]  = field(default_factory=list)
-    feature_results:  list[CheckResult]  = field(default_factory=list)   # Phase 9
-    impact_results:   list[CheckResult]  = field(default_factory=list)
-    recommendations:  list[Recommendation] = field(default_factory=list) # Phase 8
-    readiness_score:  Optional[ReadinessScore] = field(default=None)     # Phase 10
+    quality_results:      list[CheckResult]    = field(default_factory=list)
+    leakage_results:      list[CheckResult]    = field(default_factory=list)
+    feature_results:      list[CheckResult]    = field(default_factory=list)    # Phase 9
+    sufficiency_results:  list[CheckResult]    = field(default_factory=list)    # Phase 11
+    drift_results:        list[CheckResult]    = field(default_factory=list)    # Phase 14
+    impact_results:       list[CheckResult]    = field(default_factory=list)
+    recommendations:      list[Recommendation] = field(default_factory=list)    # Phase 8
+    readiness_score:      Optional[ReadinessScore] = field(default=None)        # Phase 10
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def all_results(self) -> list[CheckResult]:
         """Return every CheckResult across all phases."""
-        return (self.quality_results + self.leakage_results +
-                self.feature_results + self.impact_results)
+        return (self.quality_results + self.leakage_results + self.feature_results
+                + self.sufficiency_results + self.drift_results + self.impact_results)
 
     def failed_checks(self) -> list[CheckResult]:
         return [r for r in self.all_results() if not r.passed]

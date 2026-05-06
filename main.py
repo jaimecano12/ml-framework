@@ -7,13 +7,16 @@ import sys
 from pathlib import Path
 
 from src.config import get_section, load_config
+from src.drift_checks import run_all_drift_checks
 from src.feature_analysis import run_all_feature_checks
 from src.impact_analysis import run_impact_analysis
 from src.leakage_checks import run_all_leakage_checks
+from src.plugins import load_plugins
 from src.quality_checks import run_all_quality_checks
 from src.recommendations import generate_recommendations
 from src.reporting import generate_report
 from src.scoring import compute_readiness_score
+from src.sufficiency import run_all_sufficiency_checks
 from src.utils import FrameworkReport, load_dataset, setup_logger
 
 
@@ -83,6 +86,21 @@ def main(argv: list[str] | None = None) -> int:
     report.feature_results = run_all_feature_checks(
         df, target_col, get_section(config, "feature_analysis")
     )
+
+    # Phase 11 — sufficiency checks
+    report.sufficiency_results = run_all_sufficiency_checks(
+        df, target_col, report, get_section(config, "sufficiency_checks")
+    )
+
+    # Phase 14 — drift checks
+    report.drift_results = run_all_drift_checks(
+        df, target_col, get_section(config, "drift_checks")
+    )
+
+    # Phase 15 — plugin checks (appended to each phase's results)
+    plugin_paths = config.get("plugins", [])
+    if plugin_paths:
+        load_plugins(plugin_paths)
 
     # Phase 5 — impact analysis
     report.impact_results = run_impact_analysis(

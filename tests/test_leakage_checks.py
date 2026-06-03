@@ -12,9 +12,11 @@ from src.leakage_checks import (
     _cramers_v,
     _feature_target_association,
     check_id_column_leakage,
+    check_leakage_risk_score,
     check_target_leakage,
     check_temporal_leakage,
     check_train_test_overlap,
+    compute_leakage_risk_score,
     run_all_leakage_checks,
 )
 from src.utils import CheckResult
@@ -85,6 +87,7 @@ def _default_leakage_config() -> dict:
         "train_test_overlap": {"enabled": True, "test_size": 0.2, "random_state": 42},
         "temporal_leakage":   {"enabled": True, "date_column": None},
         "id_column_leakage":  {"enabled": True, "cardinality_threshold": 0.95},
+        "leakage_risk_score": {"enabled": True, "threshold": 0.7, "weights": [0.35, 0.35, 0.30], "cv_folds": 3},
     }
 
 
@@ -304,10 +307,13 @@ class TestRunAllLeakageChecks:
         assert isinstance(results, list)
         assert all(isinstance(r, CheckResult) for r in results)
 
-    def test_all_four_checks_run_by_default(self, df_clean: pd.DataFrame):
+    def test_all_five_checks_run_by_default(self, df_clean: pd.DataFrame):
         results = run_all_leakage_checks(df_clean, "target", _default_leakage_config())
         names = {r.check_name for r in results}
-        expected = {"target_leakage", "train_test_overlap", "temporal_leakage", "id_column_leakage"}
+        expected = {
+            "target_leakage", "train_test_overlap", "temporal_leakage",
+            "id_column_leakage", "leakage_risk_score",
+        }
         assert names == expected
 
     def test_disabled_top_level_returns_empty(self, df_clean: pd.DataFrame):
@@ -329,3 +335,59 @@ class TestRunAllLeakageChecks:
     def test_all_pass_on_clean_data(self, df_clean: pd.DataFrame):
         results = run_all_leakage_checks(df_clean, "target", _default_leakage_config())
         assert all(r.passed for r in results)
+
+
+# ---------------------------------------------------------------------------
+# check_leakage_risk_score / compute_leakage_risk_score
+# ---------------------------------------------------------------------------
+
+class TestLeakageRiskScore:
+    _cfg = {"threshold": 0.7, "weights": [0.35, 0.35, 0.30], "cv_folds": 3}
+
+    def test_passes_on_clean_data(self, df_clean: pd.DataFrame):
+        r = check_leakage_risk_score(df_clean, "target", self._cfg)
+        assert r.passed
+        assert r.check_name == "leakage_risk_score"
+
+    def test_detects_perfect_proxy(self, df_leaky: pd.DataFrame):
+        r = check_leakage_risk_score(df_leaky, "target", self._cfg)
+        assert not r.passed
+        assert "proxy" in r.affected_columns
+
+    def test_severity_error_when_score_above_09(self, df_leaky: pd.DataFrame):
+        r = check_leakage_risk_score(df_leaky, "target", self._cfg)
+        assert r.severity == "error"
+
+    def test_details_contain_all_score_components(self, df_clean: pd.DataFrame):
+        r = check_leakage_risk_score(df_clean, "target", self._cfg)
+        assert "risk_scores" in r.details
+        assert "corr_scores" in r.details
+        assert "mi_scores" in r.details
+        assert "perf_scores" in r.details
+        assert "weights" in r.details
+
+    def test_threshold_respected(self, df_leaky: pd.DataFrame):
+        # threshold=1.1 → nothing flagged
+        r = check_leakage_risk_score(df_leaky, "target", {**self._cfg, "threshold": 1.1})
+        assert r.passed
+
+    def test_compute_returns_all_features(self, df_clean: pd.DataFrame):
+        result = compute_leakage_risk_score(df_clean, "target", self._cfg)
+        feature_cols = [c for c in df_clean.columns if c != "target"]
+        assert set(result["risk_scores"].keys()) == set(feature_cols)
+        assert set(result["corr_scores"].keys()) == set(feature_cols)
+        assert set(result["mi_scores"].keys()) == set(feature_cols)
+        assert set(result["perf_scores"].keys()) == set(feature_cols)
+
+    def test_scores_in_unit_interval(self, df_clean: pd.DataFrame):
+        result = compute_leakage_risk_score(df_clean, "target", self._cfg)
+        for col, score in result["risk_scores"].items():
+            assert 0.0 <= score <= 1.0, f"risk_score for '{col}' out of range: {score}"
+
+    def test_missing_target_raises(self, df_clean: pd.DataFrame):
+        with pytest.raises(ValueError, match="ghost"):
+            check_leakage_risk_score(df_clean, "ghost", self._cfg)
+
+    def test_noise_feature_low_risk(self, df_leaky: pd.DataFrame):
+        result = compute_leakage_risk_score(df_leaky, "target", self._cfg)
+        assert result["risk_scores"]["noise"] < 0.5

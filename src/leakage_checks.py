@@ -1,6 +1,9 @@
-"""Data leakage detection checks (Phase 4)."""
+"""Data leakage detection checks (Phase 4 + unified risk score)."""
 
 from __future__ import annotations
+
+import warnings
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -55,6 +58,162 @@ def _feature_target_association(feature: pd.Series, target: pd.Series) -> float:
             return _cramers_v(f.astype(str), t.astype(str))
         except Exception:
             return 0.0
+
+
+# ---------------------------------------------------------------------------
+# Unified leakage risk score
+# ---------------------------------------------------------------------------
+
+def compute_leakage_risk_score(
+    df: pd.DataFrame,
+    target_col: str,
+    config: dict,
+) -> dict[str, Any]:
+    """Compute a per-feature leakage risk score combining three signals.
+
+    Signals:
+        - **Correlation** (Pearson |r| or Cramér's V): linear/categorical association.
+        - **Mutual information** (normalised by max MI): nonlinear association.
+        - **Performance inflation**: how much accuracy a single feature achieves
+          above the majority-class baseline (proxy for direct label predictability).
+
+    Each signal is normalised to [0, 1] before combining.  The unified score is
+    a weighted sum::
+
+        risk = w_corr * corr + w_mi * mi + w_perf * perf_inflation
+
+    Args:
+        df: Input DataFrame.
+        target_col: Name of the target / label column.
+        config: The ``leakage_checks.leakage_risk_score`` config block.
+            Relevant keys: ``weights`` (list[float, float, float]),
+            ``cv_folds`` (int, default 3).
+
+    Returns:
+        Dict with keys ``risk_scores``, ``corr_scores``, ``mi_scores``,
+        ``perf_scores``, and ``weights``.
+    """
+    from sklearn.feature_selection import mutual_info_classif
+    from sklearn.impute import SimpleImputer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import cross_val_score
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import LabelEncoder, StandardScaler
+
+    feature_cols = [c for c in df.columns if c != target_col]
+    if not feature_cols:
+        return {"risk_scores": {}, "corr_scores": {}, "mi_scores": {}, "perf_scores": {}, "weights": {}}
+
+    # Encode target to integers
+    target = df[target_col]
+    if not pd.api.types.is_numeric_dtype(target):
+        target_enc = pd.Series(
+            LabelEncoder().fit_transform(target.astype(str).fillna("__missing__")),
+            name=target_col,
+        )
+    else:
+        target_enc = target.fillna(target.median()).astype(int)
+
+    # Prepare X: encode categoricals, impute
+    X_raw = df[feature_cols].copy()
+    for col in X_raw.select_dtypes(include=["object", "category"]).columns:
+        X_raw[col] = pd.factorize(X_raw[col])[0].astype(float)
+    X_raw = X_raw.astype(float)
+    X_imp = pd.DataFrame(
+        SimpleImputer(strategy="mean").fit_transform(X_raw),
+        columns=feature_cols,
+    )
+
+    # 1. Correlation scores
+    corr_scores = {col: _feature_target_association(df[col], df[target_col]) for col in feature_cols}
+
+    # 2. Mutual information (normalised by max)
+    mi_raw = mutual_info_classif(X_imp.values, target_enc.values, random_state=42)
+    mi_max = max(float(mi_raw.max()), 1e-10)
+    mi_scores = {col: round(float(mi_raw[i]) / mi_max, 4) for i, col in enumerate(feature_cols)}
+
+    # 3. Performance inflation: single-feature LR accuracy vs majority-class baseline
+    majority_baseline = float(target_enc.value_counts(normalize=True).max())
+    range_above = max(1.0 - majority_baseline, 1e-10)
+    cv_folds = min(config.get("cv_folds", 3), len(df) // 2)
+
+    perf_scores: dict[str, float] = {}
+    for col in feature_cols:
+        x_single = X_imp[[col]].values
+        pipe = Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", LogisticRegression(max_iter=300, random_state=42, n_jobs=1)),
+        ])
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                scores = cross_val_score(
+                    pipe, x_single, target_enc.values,
+                    cv=cv_folds, scoring="accuracy", n_jobs=1,
+                )
+            inflation = max(0.0, float(scores.mean()) - majority_baseline) / range_above
+            perf_scores[col] = round(min(1.0, inflation), 4)
+        except Exception:
+            perf_scores[col] = 0.0
+
+    # Unified weighted score
+    weights = config.get("weights", [0.35, 0.35, 0.30])
+    w_corr, w_mi, w_perf = weights[0], weights[1], weights[2]
+    risk_scores = {
+        col: round(min(1.0, w_corr * corr_scores[col] + w_mi * mi_scores[col] + w_perf * perf_scores[col]), 4)
+        for col in feature_cols
+    }
+
+    return {
+        "risk_scores": risk_scores,
+        "corr_scores": {c: round(v, 4) for c, v in corr_scores.items()},
+        "mi_scores": mi_scores,
+        "perf_scores": perf_scores,
+        "weights": {"correlation": w_corr, "mutual_information": w_mi, "performance": w_perf},
+    }
+
+
+def check_leakage_risk_score(df: pd.DataFrame, target_col: str, config: dict) -> CheckResult:
+    """Unified leakage risk check — combines correlation, MI, and performance inflation.
+
+    Args:
+        df: Input DataFrame.
+        target_col: Name of the target / label column.
+        config: The ``leakage_checks.leakage_risk_score`` config block.
+
+    Returns:
+        Passed CheckResult when no feature exceeds the risk threshold, failed otherwise.
+    """
+    if target_col not in df.columns:
+        raise ValueError(f"Target column '{target_col}' not found in DataFrame.")
+
+    threshold: float = config.get("threshold", 0.7)
+    result = compute_leakage_risk_score(df, target_col, config)
+    risk_scores = result["risk_scores"]
+
+    high_risk = {col: score for col, score in risk_scores.items() if score >= threshold}
+
+    if not high_risk:
+        return CheckResult(
+            check_name="leakage_risk_score",
+            passed=True,
+            severity="info",
+            message=f"No features exceed the unified leakage risk threshold ({threshold}).",
+            details={**result, "threshold": threshold},
+        )
+
+    top_score = max(high_risk.values())
+    return CheckResult(
+        check_name="leakage_risk_score",
+        passed=False,
+        severity="error" if top_score >= 0.9 else "warning",
+        message=(
+            f"{len(high_risk)} feature(s) have unified leakage risk score >= {threshold} "
+            f"(max={top_score:.3f})."
+        ),
+        details={**result, "threshold": threshold, "high_risk_features": high_risk},
+        affected_columns=list(high_risk.keys()),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -339,10 +498,11 @@ def run_all_leakage_checks(
         results.append(r)
         (logger.warning if not r.passed else logger.debug)(f"[{key}] {r.message}")
 
-    _run("target_leakage",     lambda cfg: check_target_leakage(df, target_col, cfg))
-    _run("train_test_overlap", lambda cfg: check_train_test_overlap(df, cfg))
-    _run("temporal_leakage",   lambda cfg: check_temporal_leakage(df, cfg))
-    _run("id_column_leakage",  lambda cfg: check_id_column_leakage(df, target_col, cfg))
+    _run("target_leakage",      lambda cfg: check_target_leakage(df, target_col, cfg))
+    _run("train_test_overlap",  lambda cfg: check_train_test_overlap(df, cfg))
+    _run("temporal_leakage",    lambda cfg: check_temporal_leakage(df, cfg))
+    _run("id_column_leakage",   lambda cfg: check_id_column_leakage(df, target_col, cfg))
+    _run("leakage_risk_score",  lambda cfg: check_leakage_risk_score(df, target_col, cfg))
 
     passed = sum(1 for r in results if r.passed)
     logger.info(f"Leakage checks complete: {passed}/{len(results)} passed.")

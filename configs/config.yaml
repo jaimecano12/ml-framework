@@ -43,6 +43,11 @@ leakage_checks:
   id_column_leakage:
     enabled: true
     cardinality_threshold: 0.95   # flag columns where > 95 % of values are unique
+  leakage_risk_score:
+    enabled: true
+    threshold: 0.7                # flag features with unified risk score >= 0.7
+    weights: [0.35, 0.35, 0.30]   # [correlation, mutual_information, performance_inflation]
+    cv_folds: 3                   # folds for per-feature single-LR CV
 
 impact_analysis:
   enabled: true
@@ -103,5 +108,12 @@ drift_checks:
     enabled: true
     alpha: 0.05
     date_column: null
+
+semantic_leakage:
+  enabled: false              # set true when AZURE_OPENAI_API_KEY is configured
+  deployment: gpt-4o-mini    # Azure OpenAI deployment name
+  max_features: 30            # max features to send to LLM
+  risk_threshold: medium      # flag features with risk >= this level
+  # AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be set as env vars
 
 plugins: []    # list of dotted module paths to load at startup

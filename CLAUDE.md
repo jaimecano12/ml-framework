@@ -5,6 +5,7 @@
 **"An Automated Framework for Dataset Quality Assessment and Data Leakage Detection in Machine Learning"**
 TFM de Jaime Cano Moraño — Python 3.13, entorno miniconda (`/opt/miniconda3`).
 Repositorio: https://github.com/jaimecano12/ml-framework
+Institución: Illinois Institute of Technology
 
 ---
 
@@ -17,10 +18,10 @@ Repositorio: https://github.com/jaimecano12/ml-framework
 
 ---
 
-## Estado actual — COMPLETO (15 fases + notebook)
+## Estado actual — COMPLETO (16 fases + notebook + paper)
 
-| Fase | Módulo | Tests | Estado |
-|------|--------|-------|--------|
+| Fase | Módulo / Artefacto | Tests | Estado |
+|------|--------------------|-------|--------|
 | 1 — Scaffold | `src/utils.py`, `main.py` | 16 | ✅ |
 | 2 — Config YAML | `src/config.py`, `configs/config.yaml` | 26 | ✅ |
 | 3 — Quality checks | `src/quality_checks.py` | 44 | ✅ |
@@ -36,9 +37,11 @@ Repositorio: https://github.com/jaimecano12/ml-framework
 | 13 — Python SDK | `src/checker.py` | 14 | ✅ |
 | 14 — Drift detection | `src/drift_checks.py` | 14 | ✅ |
 | 15 — Plugin system | `src/plugins.py` | 11 | ✅ |
+| 16 — Unified leakage risk score + LLM semantic analysis | `src/leakage_checks.py`, `src/semantic_leakage.py` | 33 | ✅ |
 | Demo notebook | `notebooks/framework_demo.ipynb` | — | ✅ |
+| Paper | `paper.tex`, `paper.pdf` | — | ✅ |
 
-**Total: 301 tests, 301 passed.**
+**Total: 325 tests, 325 passed.**
 
 ---
 
@@ -47,65 +50,114 @@ Repositorio: https://github.com/jaimecano12/ml-framework
 ```
 ml-framework/
 ├── app/
-│   └── app.py                   — Streamlit web app (Phase 12)
+│   └── app.py                      — Streamlit web app (Phase 12)
 ├── configs/
-│   └── config.yaml              — Master config (all phases)
-├── data/raw/                    — 5 datasets (3 synthetic + Titanic + Diabetes)
+│   ├── config.yaml                 — Master config (all phases, incl. Phase 16)
+│   ├── diabetes_config.yaml
+│   ├── leaky_experiment.yaml
+│   └── titanic_config.yaml
+├── data/raw/                       — 11 datasets (6 synthetic + 5 real-world)
+│   ├── clean_dataset.csv           — control (500 rows)
+│   ├── dirty_dataset.csv           — quality issues (5,300 rows)
+│   ├── leaky_dataset.csv           — leakage issues (5,320 rows)
+│   ├── proxy_leakage.csv           — graded noisy proxies (1,000 rows) [Phase 16]
+│   ├── temporal_leakage_ext.csv    — churn + future feature (2,000 rows) [Phase 16]
+│   ├── multitype_leakage.csv       — ICU proxy+temporal+ID (1,500 rows) [Phase 16]
+│   ├── titanic.csv                 — OpenML Titanic (1,309 rows)
+│   ├── diabetes.csv                — Pima Diabetes (768 rows)
+│   ├── adult.csv                   — Adult Census Income (48,842 rows) [Phase 16]
+│   ├── german_credit.csv           — German Credit (1,000 rows) [Phase 16]
+│   ├── heart_disease.csv           — Cleveland Heart Disease (303 rows) [Phase 16]
+│   └── wine_quality.csv            — Wine Quality Red (1,599 rows) [Phase 16]
 ├── notebooks/
-│   └── framework_demo.ipynb     — 14-cell executed notebook
-├── reports/                     — HTML reports + PNG figures + JSON exports
+│   └── framework_demo.ipynb        — 14-cell executed notebook
+├── paper.tex                       — LaTeX source (12 pages, conference format)
+├── paper.pdf                       — Compiled PDF
+├── reports/                        — HTML reports + PNG figures + JSON exports
+│   ├── benchmark_results.json      — Tool comparison data [Phase 16]
+│   └── benchmark_report.txt        — Human-readable benchmark [Phase 16]
 ├── scripts/
-│   ├── generate_data.py         — synthetic dataset generator
-│   ├── download_real_datasets.py— Titanic + Diabetes via OpenML
-│   ├── run_pipeline.py          — end-to-end demo (3 synthetic datasets)
-│   ├── build_notebook.py        — notebook builder
-│   ├── write_section2.py        — writes Section 2 into tfm.docx
-│   └── full_evaluation.py       — comprehensive benchmark
+│   ├── generate_data.py            — 6 synthetic datasets (incl. 3 new [Phase 16])
+│   ├── download_real_datasets.py   — Titanic + Diabetes via OpenML
+│   ├── download_more_datasets.py   — Adult, Heart Disease, German Credit, Wine [Phase 16]
+│   ├── benchmark_comparison.py     — Quantitative benchmark vs 3 tools [Phase 16]
+│   ├── run_pipeline.py             — end-to-end demo
+│   ├── build_notebook.py           — notebook builder
+│   ├── write_section2.py           — writes Section 2 into tfm.docx
+│   └── full_evaluation.py          — comprehensive benchmark
 ├── src/
-│   ├── __init__.py              — public API: DatasetChecker + dataclasses
-│   ├── checker.py               — DatasetChecker SDK (Phase 13)
-│   ├── config.py                — YAML loader, deep-merge, validation
-│   ├── drift_checks.py          — KS + PSI covariate/label drift (Phase 14)
-│   ├── feature_analysis.py      — correlation, MI relevance, distribution (Phase 9)
-│   ├── impact_analysis.py       — baseline vs cleaned CV comparison (Phase 5)
-│   ├── leakage_checks.py        — 4 leakage checks (Phase 4)
-│   ├── plugins.py               — @register_check plugin system (Phase 15)
-│   ├── quality_checks.py        — 6 quality checks (Phase 3)
-│   ├── recommendations.py       — 20 handlers → Recommendation objects (Phase 8)
-│   ├── reporting.py             — HTML generation via Jinja2 + matplotlib (Phase 6)
-│   ├── scoring.py               — 0-100 ReadinessScore, A-F grade (Phase 10)
-│   ├── sufficiency.py           — 4 statistical sufficiency checks (Phase 11)
-│   ├── templates/report.html.j2 — HTML template (inline CSS, no deps)
-│   └── utils.py                 — CheckResult, FrameworkReport, Recommendation,
-│                                   DimensionScore, ReadinessScore, load_dataset
-├── tests/                       — 301 tests across 10 test files
-├── main.py                      — CLI: --config --dataset --output-dir --log-level
-└── requirements.txt             — all deps including streamlit
+│   ├── __init__.py                 — public API: DatasetChecker + dataclasses + semantic
+│   ├── checker.py                  — DatasetChecker SDK (Phase 13)
+│   ├── config.py                   — YAML loader, deep-merge, validation
+│   ├── drift_checks.py             — KS + PSI covariate/label drift (Phase 14)
+│   ├── feature_analysis.py         — correlation, MI relevance, distribution (Phase 9)
+│   ├── impact_analysis.py          — baseline vs cleaned CV comparison (Phase 5)
+│   ├── leakage_checks.py           — 5 leakage checks incl. unified risk score (Phase 16)
+│   ├── plugins.py                  — @register_check plugin system (Phase 15)
+│   ├── quality_checks.py           — 6 quality checks (Phase 3)
+│   ├── recommendations.py          — 20 handlers → Recommendation objects (Phase 8)
+│   ├── reporting.py                — HTML generation via Jinja2 + matplotlib (Phase 6)
+│   ├── scoring.py                  — 0-100 ReadinessScore, A-F grade (Phase 10)
+│   ├── semantic_leakage.py         — GPT-4o-mini semantic leakage analysis (Phase 16)
+│   ├── sufficiency.py              — 4 statistical sufficiency checks (Phase 11)
+│   ├── templates/report.html.j2    — HTML template (inline CSS, no deps)
+│   └── utils.py                    — CheckResult, FrameworkReport, Recommendation,
+│                                     DimensionScore, ReadinessScore, load_dataset
+├── tests/                          — 325 tests across 13 test files
+├── main.py                         — CLI: --config --dataset --output-dir --log-level
+└── requirements.txt                — all deps including streamlit, openai
 ```
 
 ---
 
-## Pipeline de ejecución (21 checks)
+## Pipeline de ejecución (22 checks activos)
 
 ```
 config.yaml → load_dataset()
                     │
-        ┌───────────┼──────────────────────────────────┐
-        ▼           ▼           ▼           ▼           ▼
-  quality_checks leakage_checks feature_analysis sufficiency drift_checks
-     (6)           (4)            (3)               (4)        (2)
-        └───────────┴──────────────────────────────────┘
-                    │            │
-               impact_analysis  plugins (custom checks)
+    ┌───────────────┼────────────────────────────────────────────┐
+    ▼               ▼               ▼               ▼            ▼
+quality_checks  leakage_checks  feature_analysis sufficiency  drift_checks
+   (6)             (5)              (3)              (4)          (2)
+    └───────────────┴────────────────────────────────────────────┘
+                    │                │
+               impact_analysis     plugins (custom checks)
+                    │
+         [opcional] semantic_leakage (GPT-4o-mini via Azure OpenAI)
                     │
               recommendations → ReadinessScore (0-100, A-F)
                     │
-              generate_report() → HTML + 4 embedded plots
+              generate_report() → HTML + JSON + 4 embedded plots
 ```
 
 ---
 
 ## Módulos clave
+
+### `src/leakage_checks.py` — 5 checks (Phase 4 + Phase 16)
+| Check | Método | Severidad |
+|-------|--------|-----------|
+| `target_leakage` | Pearson \|r\| / Cramér's V ≥ 0.95 | error |
+| `train_test_overlap` | Filas duplicadas en split simulado | warning/error |
+| `temporal_leakage` | Orden cronológico de date_column | error |
+| `id_column_leakage` | Ratio único ≥ 95% en columnas string/int | warning |
+| `leakage_risk_score` | Combinación ponderada corr + MI + perf_inflation | warning/error |
+
+**Unified Leakage Risk Score (Phase 16):**
+```
+L(f) = 0.35·ρ(f) + 0.35·Ĩ(f;y) + 0.30·π(f)
+  ρ(f)   = Pearson |r| o Cramér's V ∈ [0,1]
+  Ĩ(f;y) = MI normalizado por max MI ∈ [0,1]
+  π(f)   = (A_f - A_base) / (1 - A_base) ∈ [0,1]
+  Flag: L(f) ≥ 0.7 → warning; ≥ 0.9 → error
+```
+
+### `src/semantic_leakage.py` — LLM analysis (Phase 16)
+- Envía feature names + sample values + descripción del dataset a GPT-4o-mini via Azure OpenAI
+- Devuelve `SemanticRiskAssessment` por feature: risk_level (none/low/medium/high) + leakage_type (temporal/proxy/post_hoc/indirect)
+- Requiere `AZURE_OPENAI_API_KEY` y `AZURE_OPENAI_ENDPOINT` en env vars
+- Habilitado con `semantic_leakage.enabled: true` en config.yaml (default: false)
+- Degrada gracefully si no hay credenciales
 
 ### `src/utils.py` — Dataclasses compartidos
 - `CheckResult`: `check_name, passed, severity, message, details, affected_columns`
@@ -124,86 +176,55 @@ config.yaml → load_dataset()
 | `constant_features` | nunique() ≤ 1 | warning |
 | `low_variance` | CV = std/\|mean\| < threshold | warning |
 
-### `src/leakage_checks.py` — 4 checks
-| Check | Método | Severidad |
-|-------|--------|-----------|
-| `target_leakage` | Pearson \|r\| / Cramér's V ≥ 0.95 | error |
-| `train_test_overlap` | Filas duplicadas en split simulado | warning/error |
-| `temporal_leakage` | Orden cronológico de date_column | error |
-| `id_column_leakage` | Ratio único ≥ 95% en columnas string/int | warning |
-
-**Decisión clave:** `id_column_leakage` excluye float — la alta cardinalidad en variables continuas es normal.
-
-### `src/feature_analysis.py` — 3 checks
-| Check | Método |
-|-------|--------|
-| `feature_correlation` | Pearson \|r\| entre features ≥ 0.90 |
-| `feature_relevance` | Mutual information normalizado < 0.01 |
-| `distribution_shape` | \|skewness\| > 2.0 o kurtosis > 7.0 |
-
-**Decisión clave:** `low_variance` usa CV en lugar de varianza normalizada (min-max siempre mapea a [0,1], no captura casi-constantes).
-
-### `src/sufficiency.py` — 4 checks (Phase 11)
-| Check | Qué valida |
-|-------|-----------|
-| `sample_size` | n ≥ 100 y ratio n/p ≥ 50 |
-| `class_support` | ≥ 30 muestras por clase |
-| `cv_stability` | std del CV ≤ 0.10 (lee de impact_results) |
-| `feature_to_sample_ratio` | p/n ≤ 0.10 (riesgo overfitting) |
-
-### `src/drift_checks.py` — 2 checks (Phase 14)
-- `covariate_drift`: KS test + PSI con binning adaptativo (mín. 20 obs/bin) y corrección de Bonferroni
-- `label_drift`: chi-cuadrado sobre distribución del target entre dos mitades
-
-### `src/scoring.py` — ReadinessScore (Phase 10)
+### `src/scoring.py` — ReadinessScore
 ```
 overall = quality×0.25 + leakage×0.35 + features×0.25 + sufficiency×0.15
-  error   → −15 pts (leakage: ×1.5)
+  error   → −15 pts
   warning → −5 pts
 Grado: A≥85, B≥70, C≥55, D≥40, F<40
 ```
 
-### `src/recommendations.py` — 20 handlers (Phase 8)
-Mapea cada check fallido a `Recommendation(priority, action, rationale, code_snippet)`.
-Ordenadas por prioridad: high → medium → low.
+---
 
-### `src/plugins.py` — Plugin system (Phase 15)
-```python
-from src.plugins import register_check
-@register_check(phase="quality", name="my_check")
-def check_custom(df, target_col, config) -> CheckResult: ...
-```
-`load_plugins(["my_module.checks"])` en config.yaml.
+## Resultados experimentales
 
-### `src/checker.py` — Python SDK (Phase 13)
-```python
-checker = DatasetChecker("configs/config.yaml")
-report  = checker.run("data/titanic.csv", target_col="survived")
-print(f"{checker.score}/100  {checker.grade}")
-checker.save_report("reports/")
-d = checker.to_dict()  # JSON-serializable
-```
+### Datasets principales (21 checks)
+| Dataset | Rows | Score | Grade | Pass/Total | Key findings |
+|---------|------|-------|-------|-----------|--------------|
+| clean_dataset | 500 | 95 | A | 21/21 | Zero false positives (control) |
+| dirty_dataset | 5,300 | 65 | C | 12/21 | 5 quality issues, 2 sufficiency |
+| leaky_dataset | 5,320 | 72 | B | 11/21 | target_leakage, temporal, ID |
+| Titanic | 1,309 | 75 | B | 17/21 | boat column r=0.97 |
+| Diabetes | 768 | 80 | B | 20/21 | 51 outliers (physiological zeros) |
 
-### `app/app.py` — Streamlit (Phase 12)
-```bash
-streamlit run app/app.py
-# → http://localhost:8501
-```
-Upload CSV/Parquet/Excel, configuración inline, 7 pestañas, descarga HTML+JSON.
+### Datasets UCI adicionales (Phase 16)
+| Dataset | Rows | Score | Grade | Primary issues |
+|---------|------|-------|-------|----------------|
+| Adult Census | 48,842 | 68 | C | Class imbalance (76/24), missing values |
+| German Credit | 1,000 | 74 | B | Class imbalance (70/30), feature correlation |
+| Heart Disease | 303 | 62 | C | Low n/p=21.6, inter-feature correlation |
+| Wine Quality | 1,599 | 82 | B | Mild imbalance, skewness in residual.sugar |
+
+**Resultado clave:** leaky_dataset baseline accuracy = 1.000 → cleaned = 0.952 (Δ = −0.048).
+
+### Benchmark vs herramientas (Phase 16)
+| Herramienta | Checks (de 29) | Detección leakage (de 4) |
+|-------------|---------------|--------------------------|
+| ml-framework | **29/29** | **4/4** |
+| Deepchecks | 11/29 | 0/4 |
+| Great Expectations | 9/29 | 1/4 |
+| ydata-profiling | 8/29 | 0/4 |
 
 ---
 
-## Resultados experimentales (21 checks)
+## Paper académico
 
-| Dataset | Rows | Score | Grade | Pass/Total | Key findings |
-|---------|------|-------|-------|-----------|--------------|
-| clean_dataset | 500 | ~95 | A | 21/21 | Zero false positives (control) |
-| dirty_dataset | 5,300 | ~65 | C | 12/21 | 5 quality issues, 2 sufficiency |
-| leaky_dataset | 5,320 | ~72 | B | 10/21 | target_leakage, temporal, ID, features |
-| Titanic | 1,309 | ~75 | B | 17/21 | boat column r=0.97, 4 missing cols |
-| Diabetes | 768 | ~80 | B | 20/21 | 51 outliers (physiological zeros) |
-
-**Resultado clave:** leaky_dataset baseline accuracy = 1.000 → cleaned = 0.952 (Δ = −0.048).
+- **Archivo:** `paper.tex` / `paper.pdf`
+- **Formato:** 12 páginas, single-column, 11pt Times New Roman, estilo conferencia
+- **Compilar:** `tectonic paper.tex` (requiere Homebrew `tectonic`)
+- **Secciones:** Abstract, Introduction, Related Work, System Architecture, Core Methodology, Experimental Evaluation, Quantitative Benchmark, Discussion, Conclusion, References (19 referencias)
+- **Figuras:** TikZ pipeline diagram, pgfplots readiness bar chart, pgfplots coverage chart
+- **Cambios de formato últimos:** fancyhdr headers, mdframed abstract box, titlesec con línea bajo secciones, captionsetup, arraystretch, listings con fondo gris
 
 ---
 
@@ -215,11 +236,25 @@ python main.py --config configs/config.yaml --dataset data/raw/titanic.csv
 
 # Python SDK
 from src.checker import DatasetChecker
-checker = DatasetChecker()
-checker.run("data/titanic.csv", target_col="survived")
+checker = DatasetChecker("configs/config.yaml")
+report = checker.run("data/titanic.csv", target_col="survived")
+print(f"{checker.score}/100  grade={checker.grade}")
+checker.save_report("reports/")
 
 # Streamlit app
 streamlit run app/app.py
+
+# Generar datasets sintéticos (incl. 3 nuevos)
+python scripts/generate_data.py
+
+# Descargar datasets UCI adicionales
+python scripts/download_more_datasets.py
+
+# Benchmark vs otras herramientas
+python scripts/benchmark_comparison.py
+
+# Compilar paper
+tectonic paper.tex
 
 # Notebook (kernel ml-framework)
 python -m jupyter lab notebooks/framework_demo.ipynb
@@ -233,4 +268,20 @@ python -m jupyter lab notebooks/framework_demo.ipynb
 pandas, numpy, scipy, scikit-learn, xgboost
 pyyaml, jinja2, matplotlib, seaborn
 loguru, streamlit, pytest, nbformat, jupyter
+openai                  # LLM semantic analysis (opcional)
+ydata-profiling         # benchmark comparison
+deepchecks              # benchmark comparison
+great-expectations      # benchmark comparison
+tectonic                # compilar paper (brew install tectonic)
 ```
+
+---
+
+## Feedback del supervisor (Prof. Yong)
+
+Incorporado en Phase 16:
+1. ✅ **Unified leakage risk score** — combina correlación + MI + performance inflation
+2. ✅ **Más datasets** — 4 UCI reales + 3 sintéticos con escenarios complejos
+3. ✅ **Benchmark cuantitativo** — comparación instalada contra ydata-profiling, Deepchecks, GE
+4. ✅ **LLM semantic analysis** — módulo GPT-4o-mini para leakage implícito por nombre de feature
+5. ✅ **Paper académico** — 12 páginas con resultados, benchmark, ecuaciones y figuras

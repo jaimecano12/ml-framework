@@ -3,7 +3,7 @@
 % ── Packages ────────────────────────────────────────────────────────────────
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
-\usepackage[top=0.95in, bottom=0.95in, left=1.15in, right=1.15in]{geometry}
+\usepackage[top=1.0in, bottom=1.0in, left=1.15in, right=1.15in]{geometry}
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -27,30 +27,78 @@
 \usepackage{abstract}
 \usepackage{setspace}
 \usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{mdframed}
 
-% ── Section spacing ──────────────────────────────────────────────────────────
-\titlespacing*{\section}{0pt}{1.2ex plus .4ex minus .2ex}{0.6ex plus .1ex}
-\titlespacing*{\subsection}{0pt}{0.9ex plus .3ex minus .1ex}{0.4ex plus .1ex}
+% ── Headers & footers ────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{An Automated Framework for Dataset Quality Assessment}}
+\fancyhead[R]{\small\textit{Cano Mora\~{n}o, 2026}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyfoot[C]{\small\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+% ── Section formatting ───────────────────────────────────────────────────────
+\titleformat{\section}
+  {\normalfont\large\bfseries}{\thesection}{0.7em}{}[{\vspace{1pt}\titlerule[0.5pt]}]
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\itshape}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.4ex plus .4ex minus .2ex}{0.7ex plus .1ex}
+\titlespacing*{\subsection}{0pt}{1.0ex plus .3ex minus .1ex}{0.4ex plus .1ex}
 \titlespacing*{\subsubsection}{0pt}{0.7ex plus .2ex minus .1ex}{0.3ex plus .1ex}
 \setlength{\parskip}{3pt}
 \setlength{\parindent}{1em}
 
+% ── Widow / orphan protection ────────────────────────────────────────────────
+\widowpenalty=10000
+\clubpenalty=10000
+\emergencystretch=1.5em
+\frenchspacing
+
+% ── Table row spacing ────────────────────────────────────────────────────────
+\renewcommand{\arraystretch}{1.12}
+
+% ── Caption style ────────────────────────────────────────────────────────────
+\captionsetup{font=small, labelfont=bf, labelsep=period,
+              skip=4pt, justification=raggedright, singlelinecheck=false}
+
 % ── Colours & code style ────────────────────────────────────────────────────
 \definecolor{codeblue}{rgb}{0.13,0.29,0.53}
-\definecolor{codegreen}{rgb}{0.0,0.47,0.0}
+\definecolor{codegreen}{rgb}{0.0,0.45,0.0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-\definecolor{framecolor}{rgb}{0.85,0.85,0.85}
+\definecolor{codebg}{rgb}{0.97,0.97,0.97}
+\definecolor{framecolor}{rgb}{0.75,0.75,0.75}
 \lstset{
   language=Python,
-  basicstyle=\ttfamily\scriptsize,
+  basicstyle=\ttfamily\small,
   keywordstyle=\color{codeblue}\bfseries,
-  commentstyle=\color{codegreen}\itshape,
+  commentstyle=\color{codegray}\itshape,
   stringstyle=\color{codegreen},
   numberstyle=\tiny\color{codegray},
-  numbers=left, numbersep=4pt,
+  numbers=left, numbersep=6pt,
+  backgroundcolor=\color{codebg},
   frame=single, rulecolor=\color{framecolor},
   breaklines=true, captionpos=b,
   showstringspaces=false,
+  xleftmargin=8pt, xrightmargin=4pt,
+  framexleftmargin=6pt,
+}
+
+% ── Abstract box ────────────────────────────────────────────────────────────
+\mdfdefinestyle{abstractbox}{
+  linecolor=black!30, linewidth=0.6pt,
+  backgroundcolor=black!3,
+  innerleftmargin=10pt, innerrightmargin=10pt,
+  innertopmargin=8pt, innerbottommargin=8pt,
+  skipabove=6pt, skipbelow=6pt,
 }
 
 \newcommand{\cmark}{\textbf{\textcolor{green!50!black}{$\checkmark$}}}
@@ -72,7 +120,8 @@ and Data Leakage Detection in Machine Learning}}
 \maketitle
 
 % ── Abstract ────────────────────────────────────────────────────────────────
-\begin{abstract}
+\begin{mdframed}[style=abstractbox]
+\noindent\textbf{Abstract.}\quad
 Data quality issues and data leakage are among the most common and damaging
 problems in applied machine learning, yet most practitioners lack systematic
 tools to detect them before model training.  We present \textbf{ml-framework},
@@ -88,9 +137,9 @@ Experiments on five real-world and six synthetic datasets demonstrate that
 ml-framework detects \textbf{4/4} constructed leakage scenarios, covers
 \textbf{29} distinct checks, and outperforms ydata-profiling, Deepchecks, and
 Great Expectations in both feature coverage and leakage detection rate.  All
-code, datasets, and benchmarks are publicly available at
+code, datasets, and benchmarks are available at
 \url{https://github.com/jaimecano12/ml-framework}.
-\end{abstract}
+\end{mdframed}
 
 % ════════════════════════════════════════════════════════════════════════════
 \section{Introduction}
@@ -232,70 +281,62 @@ a YAML configuration file are the only required inputs.  The pipeline executes
 six analysis phases in parallel; results are aggregated into a
 \texttt{FrameworkReport} and passed to the scoring and recommendation engines.
 
-\begin{figure}[!h]
+\begin{figure}[!ht]
 \centering
 \begin{tikzpicture}[
-  every node/.style={font=\scriptsize},
-  box/.style={draw, rounded corners=2pt, fill=blue!8,
-              minimum width=3.5cm, minimum height=0.5cm,
-              align=center, text width=3.4cm},
-  inp/.style={draw, rounded corners=2pt, fill=orange!15,
-              minimum width=3.5cm, minimum height=0.5cm, align=center},
-  phase/.style={draw, rounded corners=2pt, fill=red!8,
-                minimum width=1.55cm, minimum height=0.5cm,
-                align=center, text width=1.45cm},
-  agg/.style={draw, rounded corners=2pt, fill=teal!10,
-              minimum width=3.5cm, minimum height=0.5cm, align=center},
-  outbox/.style={draw, rounded corners=2pt, fill=green!12,
-              minimum width=1.55cm, minimum height=0.5cm,
-              align=center, text width=1.45cm},
-  arr/.style={-{Stealth[length=4pt]}, thick},
+  every node/.style={font=\small},
+  box/.style={draw, rounded corners=3pt, fill=blue!7, line width=0.5pt,
+              minimum width=4.6cm, minimum height=0.6cm,
+              align=center, text width=4.4cm},
+  inp/.style={draw, rounded corners=3pt, fill=orange!20, line width=0.5pt,
+              minimum width=4.6cm, minimum height=0.6cm, align=center},
+  phase/.style={draw, rounded corners=3pt, line width=0.5pt,
+                minimum width=2.0cm, minimum height=0.6cm,
+                align=center, text width=1.9cm},
+  agg/.style={draw, rounded corners=3pt, fill=teal!12, line width=0.5pt,
+              minimum width=4.6cm, minimum height=0.6cm, align=center},
+  outbox/.style={draw, rounded corners=3pt, line width=0.5pt,
+              minimum width=2.0cm, minimum height=0.6cm,
+              align=center, text width=1.9cm},
+  arr/.style={-{Stealth[length=5pt]}, thick, gray!70},
 ]
-% --- row 0: inputs
-\node[inp] (inp) at (0, 0) {config.yaml \quad+\quad Dataset};
-
-% --- row 1: loader
-\node[box] (load) at (0,-0.75) {load\_dataset()};
+% row 0: inputs
+\node[inp] (inp) at (0,0) {\texttt{config.yaml} \enspace+\enspace Dataset};
+% row 1: loader
+\node[box] (load) at (0,-0.9) {\texttt{load\_dataset()}};
 \draw[arr] (inp) -- (load);
-
-% --- row 2: 3 analysis phases (top row)
-\node[phase, fill=red!8]    (qc) at (-1.85, -1.55) {Quality\\(6)};
-\node[phase, fill=red!8]    (lc) at ( 0.00, -1.55) {Leakage\\(5)};
-\node[phase, fill=red!8]    (fa) at ( 1.85, -1.55) {Features\\(3)};
-\draw[arr] (load.south) -- ++(0,-0.1) coordinate(mid1);
-\draw[arr] (mid1) -- (qc.north);
-\draw[arr] (mid1) -- (lc.north);
-\draw[arr] (mid1) -- (fa.north);
-
-% --- row 3: 3 analysis phases (bottom row)
-\node[phase, fill=purple!10] (su) at (-1.85, -2.45) {Sufficiency\\(4)};
-\node[phase, fill=purple!10] (dc) at ( 0.00, -2.45) {Drift\\(2)};
-\node[phase, fill=yellow!20] (ia) at ( 1.85, -2.45) {Impact\\Analysis};
-\draw[arr] (qc.south) -- (su.north);
-\draw[arr] (lc.south) -- (dc.north);
-\draw[arr] (fa.south) -- (ia.north);
-
-% --- row 4: aggregator
-\node[agg] (rep) at (0,-3.2) {FrameworkReport};
-\draw[arr] (su.south) -- ++(0,-0.1) coordinate(bl); \draw[arr] (bl) -- (rep.west);
+% row 2: phases (analysis)
+\node[phase,fill=red!7]    (qc) at (-2.4,-1.85) {Quality \\ \scriptsize(6 checks)};
+\node[phase,fill=red!7]    (lc) at ( 0.0,-1.85) {Leakage \\ \scriptsize(5 checks)};
+\node[phase,fill=red!7]    (fa) at ( 2.4,-1.85) {Features \\ \scriptsize(3 checks)};
+\draw[arr] (load.south) -- ++(0,-0.12) coordinate(m1);
+\draw[arr] (m1) -- (qc.north);
+\draw[arr] (m1) -- (lc.north);
+\draw[arr] (m1) -- (fa.north);
+% row 3: phases (secondary)
+\node[phase,fill=purple!9]  (su) at (-2.4,-2.85) {Sufficiency \\ \scriptsize(4 checks)};
+\node[phase,fill=purple!9]  (dc) at ( 0.0,-2.85) {Drift \\ \scriptsize(2 checks)};
+\node[phase,fill=yellow!22] (ia) at ( 2.4,-2.85) {Impact \\ \scriptsize Analysis};
+\draw[arr] (qc) -- (su);  \draw[arr] (lc) -- (dc);  \draw[arr] (fa) -- (ia);
+% row 4: aggregator
+\node[agg] (rep) at (0,-3.8) {\textbf{FrameworkReport}};
+\draw[arr] (su.south) -- ++(0,-0.12) coordinate(bl); \draw[arr] (bl) -- (rep.west);
 \draw[arr] (dc.south) -- (rep.north);
-\draw[arr] (ia.south) -- ++(0,-0.1) coordinate(br); \draw[arr] (br) -- (rep.east);
-
-% --- row 5: score + recs
-\node[outbox] (rs) at (-1.0,-4.0) {Readiness\\Score (A-F)};
-\node[outbox] (rc) at ( 1.0,-4.0) {Recomm-\\endations};
-\draw[arr] (rep.south) -- ++(0,-0.1) coordinate(mid2);
-\draw[arr] (mid2) -- (rs.north);
-\draw[arr] (mid2) -- (rc.north);
-
-% --- row 6: outputs
-\node[outbox, fill=green!20] (html) at (-1.0,-4.85) {HTML+JSON};
-\node[outbox, fill=green!20] (sdk)  at ( 1.0,-4.85) {SDK/CLI/UI};
-\draw[arr] (rs.south) -- (html.north);
-\draw[arr] (rc.south) -- (sdk.north);
+\draw[arr] (ia.south) -- ++(0,-0.12) coordinate(br); \draw[arr] (br) -- (rep.east);
+% row 5: outputs
+\node[outbox,fill=green!10] (rs) at (-1.3,-4.75) {Readiness \\ Score (A--F)};
+\node[outbox,fill=green!10] (rc) at ( 1.3,-4.75) {Recommenda- \\ tions (20)};
+\draw[arr] (rep.south) -- ++(0,-0.12) coordinate(m2);
+\draw[arr] (m2) -- (rs.north);  \draw[arr] (m2) -- (rc.north);
+% row 6: exports
+\node[outbox,fill=green!18] (html) at (-1.3,-5.65) {HTML\,+\,JSON};
+\node[outbox,fill=green!18] (sdk)  at ( 1.3,-5.65) {SDK / CLI / UI};
+\draw[arr] (rs) -- (html);  \draw[arr] (rc) -- (sdk);
 \end{tikzpicture}
-\caption{ml-framework pipeline: inputs flow through six parallel analysis phases,
-  are aggregated, scored, and exported.}
+\caption{ml-framework analysis pipeline. A dataset and a configuration file
+  flow through six parallel analysis phases, are aggregated into a
+  \texttt{FrameworkReport}, scored (0--100, grade A--F), and exported as
+  HTML, JSON, or via Python SDK.}
 \label{fig:pipeline}
 \end{figure}
 
@@ -582,38 +623,44 @@ Pima Diabetes  & 80.0 & B & 20/21 & 51 outliers \\
 \end{tabularx}
 \end{table}
 
-\begin{figure}[!h]
+\begin{figure}[!ht]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
   ybar,
-  width=\columnwidth, height=5.0cm,
-  bar width=0.42cm,
+  width=0.92\columnwidth, height=6.2cm,
+  bar width=0.55cm,
   symbolic x coords={clean,dirty,leaky,Titanic,Diabetes},
   xtick=data,
-  x tick label style={font=\scriptsize, rotate=12, anchor=east},
-  ylabel={Readiness Score},
-  ylabel style={font=\scriptsize},
-  ymin=0, ymax=108,
+  xticklabels={clean\_dataset, dirty\_dataset, leaky\_dataset, Titanic, Pima Diabetes},
+  x tick label style={font=\small, rotate=18, anchor=east},
+  ylabel={Readiness Score (0--100)},
+  ylabel style={font=\small},
+  ymin=0, ymax=112,
   ytick={0,20,40,60,80,100},
-  yticklabel style={font=\scriptsize},
+  yticklabel style={font=\small},
   nodes near coords,
   nodes near coords align={vertical},
-  every node near coord/.style={font=\tiny},
-  grid=major, grid style={dashed, gray!30},
+  every node near coord/.style={font=\small\bfseries},
+  grid=major, grid style={dashed, gray!25},
+  legend style={at={(0.02,0.98)}, anchor=north west, font=\small,
+                draw=gray!50, fill=white, fill opacity=0.9},
+  legend cell align=left,
 ]
-\addplot[fill=green!55!black, draw=green!30!black]
+\addplot[fill=teal!60, draw=teal!80]
   coordinates {(clean,95)(dirty,65)(leaky,72)(Titanic,75)(Diabetes,80)};
-\addplot[dashed, red, very thick, mark=none]
+\addplot[dashed, red!80, very thick, mark=none]
   coordinates {(clean,85)(dirty,85)(leaky,85)(Titanic,85)(Diabetes,85)};
-\addplot[dashed, orange, very thick, mark=none]
+\addplot[dashed, orange!90!black, very thick, mark=none]
   coordinates {(clean,70)(dirty,70)(leaky,70)(Titanic,70)(Diabetes,70)};
-\addplot[dashed, yellow!60!black, very thick, mark=none]
+\addplot[dashed, yellow!70!black, very thick, mark=none]
   coordinates {(clean,55)(dirty,55)(leaky,55)(Titanic,55)(Diabetes,55)};
+\legend{Readiness Score, Grade A ($\ge$85), Grade B ($\ge$70), Grade C ($\ge$55)}
 \end{axis}
 \end{tikzpicture}
-\caption{Readiness scores across five datasets.  Dashed lines indicate grade
-  thresholds (A$\ge$85, B$\ge$70, C$\ge$55).}
+\caption{Readiness scores across five datasets. The clean control achieves
+  grade A (95/100) with zero false positives. Dashed lines mark grade
+  thresholds; all real-world and dirty datasets land in the B--C range.}
 \label{fig:readiness}
 \end{figure}
 
@@ -712,35 +759,34 @@ maintained tools on 29 checks.  ml-framework is the only tool to provide
 unified leakage risk scoring, temporal ordering verification, statistical
 sufficiency checks, and actionable code-level recommendations.
 
-\begin{figure}[!h]
+\begin{figure}[!ht]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
   xbar,
-  width=\columnwidth, height=4.2cm,
-  bar width=0.38cm,
+  width=0.92\columnwidth, height=5.2cm,
+  bar width=0.48cm,
   symbolic y coords={Great Exp.,Deepchecks,ydata-prof.,ml-framework},
   ytick=data,
-  y tick label style={font=\scriptsize},
+  y tick label style={font=\small},
   xlabel={Checks supported (out of 29)},
-  xlabel style={font=\scriptsize},
-  xmin=0, xmax=34,
+  xlabel style={font=\small},
+  xmin=0, xmax=36,
   xtick={0,5,10,15,20,25,29},
-  xticklabel style={font=\scriptsize},
+  xticklabel style={font=\small},
   nodes near coords,
-  every node near coord/.style={font=\tiny},
-  grid=major, grid style={dashed, gray!30},
+  every node near coord/.style={font=\small\bfseries},
+  grid=major, grid style={dashed, gray!25},
 ]
-\addplot[fill=blue!45, draw=blue!65] coordinates {
-  (9,Great Exp.)
-  (11,Deepchecks)
-  (8,ydata-prof.)
-  (29,ml-framework)
-};
+\addplot[fill={rgb,255:red,200;green,220;blue,240}, draw=blue!50] coordinates {(9,Great Exp.)};
+\addplot[fill={rgb,255:red,180;green,210;blue,230}, draw=blue!60] coordinates {(11,Deepchecks)};
+\addplot[fill={rgb,255:red,160;green,195;blue,225}, draw=blue!65] coordinates {(8,ydata-prof.)};
+\addplot[fill=teal!65, draw=teal!80] coordinates {(29,ml-framework)};
 \end{axis}
 \end{tikzpicture}
-\caption{Feature coverage: checks supported out of 29.
-  ml-framework covers $3.2\times$ more than the best alternative.}
+\caption{Feature coverage comparison: number of checks supported out of 29.
+  ml-framework provides $3.2\times$ more checks than the closest alternative
+  (Deepchecks, 11/29).}
 \label{fig:coverage}
 \end{figure}
 

@@ -1,9 +1,9 @@
-\documentclass[10pt,twocolumn]{article}
+\documentclass[11pt]{article}
 
 % ── Packages ────────────────────────────────────────────────────────────────
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
-\usepackage[margin=1in]{geometry}
+\usepackage[top=1.1in, bottom=1.1in, left=1.25in, right=1.25in]{geometry}
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -14,7 +14,7 @@
 \usepackage{algpseudocode}
 \usepackage{listings}
 \usepackage{xcolor}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage{url}
 \usepackage{pgfplots}
 \usepackage{pgfplotstable}
@@ -24,8 +24,16 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{enumitem}
-\usepackage{balance}
 \usepackage{abstract}
+\usepackage{setspace}
+\usepackage{titlesec}
+
+% ── Section spacing ──────────────────────────────────────────────────────────
+\titlespacing*{\section}{0pt}{1.6ex plus .5ex minus .2ex}{0.8ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{1.2ex plus .4ex minus .2ex}{0.5ex plus .1ex}
+\titlespacing*{\subsubsection}{0pt}{1.0ex plus .3ex minus .1ex}{0.4ex plus .1ex}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{1em}
 
 % ── Colours & code style ────────────────────────────────────────────────────
 \definecolor{codeblue}{rgb}{0.13,0.29,0.53}
@@ -54,8 +62,7 @@ and Data Leakage Detection in Machine Learning}}
 
 \author{
   Jaime Cano Mora\~{n}o\\
-  \textit{Universidad Politécnica de Madrid}\\
-  \texttt{jaimecanomorano@gmail.com}
+  \textit{Illinois Institute of Technology}
 }
 
 \date{June 2026}
@@ -688,7 +695,6 @@ The author thanks his supervisor for guidance on experimental design and the
 suggestion to incorporate LLM-based semantic leakage analysis.
 
 % ════════════════════════════════════════════════════════════════════════════
-\balance
 \bibliographystyle{unsrt}
 \begin{thebibliography}{99}
 

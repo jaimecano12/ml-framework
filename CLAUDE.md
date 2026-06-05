@@ -222,9 +222,32 @@ Grado: A≥85, B≥70, C≥55, D≥40, F<40
 - **Archivo:** `paper.tex` / `paper.pdf`
 - **Formato:** 12 páginas, single-column, 11pt Times New Roman, estilo conferencia
 - **Compilar:** `tectonic paper.tex` (requiere Homebrew `tectonic`)
-- **Secciones:** Abstract, Introduction, Related Work, System Architecture, Core Methodology, Experimental Evaluation, Quantitative Benchmark, Discussion, Conclusion, References (19 referencias)
-- **Figuras:** TikZ pipeline diagram, pgfplots readiness bar chart, pgfplots coverage chart
-- **Cambios de formato últimos:** fancyhdr headers, mdframed abstract box, titlesec con línea bajo secciones, captionsetup, arraystretch, listings con fondo gris
+- **Referencias:** 19 (Kaufman 2012, Sculley 2015, Breck 2019, Pedregosa 2011, Chen 2016, Kraskov 2004, Ross 2014, Rabanser 2019, Siddiqi 2006, McKinney 2010, OpenAI 2023, UCI 2017, Zha 2023, Narayan 2022, Sui 2023, Ng 2021, ydata-profiling, Great Expectations, Deepchecks)
+- **Formato técnico:** fancyhdr (header/footer), mdframed (abstract box), titlesec (línea bajo secciones), captionsetup (labels en negrita), arraystretch=1.12, listings con fondo gris, widowpenalty/clubpenalty, emergencystretch
+
+### Estructura del paper y dónde está cada contribución
+
+| Sección | Páginas | Contenido clave |
+|---------|---------|-----------------|
+| Abstract | 1 | Resumen: 4/4 leakage detection, 29 checks, benchmark |
+| 1. Introduction | 1–2 | Motivación, 3 ejemplos reales (Titanic boat, Δ=-0.048, ICU semántico), 4 contribuciones |
+| 2. Related Work | 2–3 | Leakage, data quality tools, data-centric AI, LLMs, MI, drift |
+| 3. System Architecture | 3–5 | Pipeline TikZ, interfaces (CLI/SDK/Streamlit), listing SDK, tabla módulos |
+| 4. Core Methodology | 5–8 | Quality checks, 4 leakage checks clásicos, **unified risk score (Eq.1 + Algorithm 1)**, feature analysis, sufficiency, drift (Eq.2), impact analysis, readiness score (Eq.3), **LLM semántico** |
+| 5. Experimental Evaluation | 8–10 | 11 datasets, readiness scores, **tabla UCI extendida**, impact analysis (Δ=-0.048), validación L(f) |
+| 6. Quantitative Benchmark | 10–11 | **29/29 vs 8–11**, **4/4 detection vs 0–1**, tabla flexibilidad, runtime |
+| 7. Discussion | 11–12 | Fortalezas, complementariedad de señales, limitaciones, 4 direcciones futuras |
+| 8. Conclusion | 12 | Resultados clave + GitHub |
+
+### Mapa feedback Prof. Yong → sección del paper
+
+| Feedback | Implementado en | Sección paper |
+|----------|----------------|---------------|
+| Unified leakage risk score | `leakage_checks.py::check_leakage_risk_score()` | §4.2.2, Eq.1, Algorithm 1, Table 4 |
+| Más datasets + escenarios complejos | `data/raw/` (11 datasets), `generate_data.py` | §5.1, §5.2, Table 3 |
+| Benchmark cuantitativo vs herramientas | `scripts/benchmark_comparison.py` | §6, Fig.3, Tables 5–7 |
+| LLM semantic analysis | `src/semantic_leakage.py` | §4.7, §7 (Discussion) |
+| Reducir detalles de implementación | Paper escrito como research paper puro | Todo el paper |
 
 ---
 
@@ -279,9 +302,12 @@ tectonic                # compilar paper (brew install tectonic)
 
 ## Feedback del supervisor (Prof. Yong)
 
-Incorporado en Phase 16:
-1. ✅ **Unified leakage risk score** — combina correlación + MI + performance inflation
-2. ✅ **Más datasets** — 4 UCI reales + 3 sintéticos con escenarios complejos
-3. ✅ **Benchmark cuantitativo** — comparación instalada contra ydata-profiling, Deepchecks, GE
-4. ✅ **LLM semantic analysis** — módulo GPT-4o-mini para leakage implícito por nombre de feature
-5. ✅ **Paper académico** — 12 páginas con resultados, benchmark, ecuaciones y figuras
+Todo incorporado en Phase 16 y documentado en el paper con secciones específicas:
+
+1. ✅ **Unified leakage risk score** → `src/leakage_checks.py` → paper §4.2.2, Eq.1, Algorithm 1, Table 4
+2. ✅ **Más datasets + escenarios complejos** → `data/raw/` (11 datasets) → paper §5.1–5.2, Table 3
+3. ✅ **Benchmark cuantitativo** → `scripts/benchmark_comparison.py` → paper §6, Fig.3, Tables 5–7
+4. ✅ **LLM semantic analysis** → `src/semantic_leakage.py` → paper §4.7, §7
+5. ✅ **Paper sin detalles de implementación** → `paper.tex` (12 páginas, research-oriented)
+
+**Respuesta enviada al profesor** indicando sección exacta del paper para cada punto (mail redactado 2026-06-05).

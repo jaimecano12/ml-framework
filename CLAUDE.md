@@ -18,7 +18,7 @@ Institución: Illinois Institute of Technology
 
 ---
 
-## Estado actual — COMPLETO (16 fases + notebook + paper)
+## Estado actual — COMPLETO (17 fases + notebook + paper)
 
 | Fase | Módulo / Artefacto | Tests | Estado |
 |------|--------------------|-------|--------|
@@ -38,8 +38,9 @@ Institución: Illinois Institute of Technology
 | 14 — Drift detection | `src/drift_checks.py` | 14 | ✅ |
 | 15 — Plugin system | `src/plugins.py` | 11 | ✅ |
 | 16 — Unified leakage risk score + LLM semantic analysis | `src/leakage_checks.py`, `src/semantic_leakage.py` | 33 | ✅ |
+| 17 — LLM benchmark + configurable scoring + case studies | `data/semantic_benchmark.json`, `scripts/evaluate_semantic_leakage.py`, `scripts/case_studies.py`, `src/scoring.py`, `configs/config.yaml` | — | ✅ |
 | Demo notebook | `notebooks/framework_demo.ipynb` | — | ✅ |
-| Paper | `paper.tex`, `paper.pdf` | — | ✅ |
+| Paper | `paper.tex`, `paper.pdf` (13 pages) | — | ✅ |
 
 **Total: 325 tests, 325 passed.**
 
@@ -71,7 +72,7 @@ ml-framework/
 │   └── wine_quality.csv            — Wine Quality Red (1,599 rows) [Phase 16]
 ├── notebooks/
 │   └── framework_demo.ipynb        — 14-cell executed notebook
-├── paper.tex                       — LaTeX source (12 pages, conference format)
+├── paper.tex                       — LaTeX source (13 pages, conference format)
 ├── paper.pdf                       — Compiled PDF
 ├── reports/                        — HTML reports + PNG figures + JSON exports
 │   ├── benchmark_results.json      — Tool comparison data [Phase 16]
@@ -81,6 +82,8 @@ ml-framework/
 │   ├── download_real_datasets.py   — Titanic + Diabetes via OpenML
 │   ├── download_more_datasets.py   — Adult, Heart Disease, German Credit, Wine [Phase 16]
 │   ├── benchmark_comparison.py     — Quantitative benchmark vs 3 tools [Phase 16]
+│   ├── evaluate_semantic_leakage.py — P/R/F1 evaluation of LLM module on 30-feature benchmark [Phase 17]
+│   ├── case_studies.py             — Runs pipeline on Titanic, Adult, German Credit [Phase 17]
 │   ├── run_pipeline.py             — end-to-end demo
 │   ├── build_notebook.py           — notebook builder
 │   ├── write_section2.py           — writes Section 2 into tfm.docx
@@ -220,7 +223,7 @@ Grado: A≥85, B≥70, C≥55, D≥40, F<40
 ## Paper académico
 
 - **Archivo:** `paper.tex` / `paper.pdf`
-- **Formato:** 12 páginas, single-column, 11pt Times New Roman, estilo conferencia
+- **Formato:** 13 páginas, single-column, 11pt Times New Roman, estilo conferencia
 - **Compilar:** `tectonic paper.tex` (requiere Homebrew `tectonic`)
 - **Referencias:** 19 (Kaufman 2012, Sculley 2015, Breck 2019, Pedregosa 2011, Chen 2016, Kraskov 2004, Ross 2014, Rabanser 2019, Siddiqi 2006, McKinney 2010, OpenAI 2023, UCI 2017, Zha 2023, Narayan 2022, Sui 2023, Ng 2021, ydata-profiling, Great Expectations, Deepchecks)
 - **Formato técnico:** fancyhdr (header/footer), mdframed (abstract box), titlesec (línea bajo secciones), captionsetup (labels en negrita), arraystretch=1.12, listings con fondo gris, widowpenalty/clubpenalty, emergencystretch
@@ -233,13 +236,13 @@ Grado: A≥85, B≥70, C≥55, D≥40, F<40
 | 1. Introduction | 1–2 | Motivación, 3 ejemplos reales (Titanic boat, Δ=-0.048, ICU semántico), 4 contribuciones |
 | 2. Related Work | 2–3 | Leakage, data quality tools, data-centric AI, LLMs, MI, drift |
 | 3. System Architecture | 3–5 | Pipeline TikZ, interfaces (CLI/SDK/Streamlit), listing SDK, tabla módulos |
-| 4. Core Methodology | 5–8 | Quality checks, 4 leakage checks clásicos, **unified risk score (Eq.1 + Algorithm 1)**, feature analysis, sufficiency, drift (Eq.2), impact analysis, readiness score (Eq.3), **LLM semántico** |
-| 5. Experimental Evaluation | 8–10 | 11 datasets, readiness scores, **tabla UCI extendida**, impact analysis (Δ=-0.048), validación L(f) |
-| 6. Quantitative Benchmark | 10–11 | **29/29 vs 8–11**, **4/4 detection vs 0–1**, tabla flexibilidad, runtime |
-| 7. Discussion | 11–12 | Fortalezas, complementariedad de señales, limitaciones, 4 direcciones futuras |
-| 8. Conclusion | 12 | Resultados clave + GitHub |
+| 4. Core Methodology | 5–9 | Quality checks, 4 leakage checks clásicos, **unified risk score (Eq.1 + Algorithm 1)**, feature analysis, sufficiency, drift (Eq.2), impact analysis, readiness score (Eq.3 + **weight rationale**), **LLM semántico + Tabla evaluación P/R/F1** |
+| 5. Experimental Evaluation | 9–11 | 11 datasets, readiness scores, tabla UCI extendida, impact analysis, validación L(f), **§5.5 real-world case studies (Titanic, Adult, German Credit)** |
+| 6. Quantitative Benchmark | 11–12 | 29/29 vs 8–11, 4/4 detection vs 0–1, tabla flexibilidad, runtime, **párrafo fairness del benchmark** |
+| 7. Discussion | 12–13 | Fortalezas, complementariedad, limitaciones, 4 direcciones futuras |
+| 8. Conclusion | 13 | Resultados clave + GitHub |
 
-### Mapa feedback Prof. Yong → sección del paper
+### Mapa feedback Prof. Yong (segunda ronda) → sección del paper
 
 | Feedback | Implementado en | Sección paper |
 |----------|----------------|---------------|
@@ -247,7 +250,11 @@ Grado: A≥85, B≥70, C≥55, D≥40, F<40
 | Más datasets + escenarios complejos | `data/raw/` (11 datasets), `generate_data.py` | §5.1, §5.2, Table 3 |
 | Benchmark cuantitativo vs herramientas | `scripts/benchmark_comparison.py` | §6, Fig.3, Tables 5–7 |
 | LLM semantic analysis | `src/semantic_leakage.py` | §4.7, §7 (Discussion) |
-| Reducir detalles de implementación | Paper escrito como research paper puro | Todo el paper |
+| **LLM quantitative evaluation** | `data/semantic_benchmark.json`, `scripts/evaluate_semantic_leakage.py` | §4.7 Table 8 (P=1.00, R=0.93, F1=0.96) |
+| **Real-world case studies** | `scripts/case_studies.py`, `reports/case_studies.json` | §5.5, Table 9 |
+| **Readiness score justification** | `src/scoring.py`, `configs/config.yaml` (scoring block) | §4.6 weight rationale paragraph |
+| **Benchmark fairness discussion** | Paper §6.2 | Párrafo "Scope of comparison" |
+| **Configurable parameters** | `configs/config.yaml` scoring block, `src/scoring.py` | §4.6 + config.yaml |
 
 ---
 
@@ -275,6 +282,12 @@ python scripts/download_more_datasets.py
 
 # Benchmark vs otras herramientas
 python scripts/benchmark_comparison.py
+
+# Evaluación cuantitativa del módulo semántico (mock, no requiere API key)
+python scripts/evaluate_semantic_leakage.py --mock
+
+# Case studies reales (Titanic, Adult, German Credit)
+python scripts/case_studies.py
 
 # Compilar paper
 tectonic paper.tex

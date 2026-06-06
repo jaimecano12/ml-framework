@@ -126,7 +126,9 @@ class DatasetChecker:
             report.impact_results = run_impact_analysis(df, tc, report, get_section(self._config, "impact_analysis"))
 
         report.recommendations = generate_recommendations(report)
-        report.readiness_score = compute_readiness_score(report)
+        report.readiness_score = compute_readiness_score(
+            report, config=self._config.get("scoring")
+        )
         self._report = report
         return report
 

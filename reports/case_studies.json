@@ -1,0 +1,162 @@
+[
+  {
+    "name": "Titanic",
+    "rows": 1309,
+    "cols": 13,
+    "target_col": "survived",
+    "readiness_score": 80.6,
+    "grade": "B",
+    "checks_passed": 12,
+    "checks_total": 20,
+    "top_findings": [
+      {
+        "check": "missing_values",
+        "severity": "error",
+        "message": "4 column(s) exceed 5% missing-value rate.",
+        "affected_columns": [
+          "cabin",
+          "boat",
+          "home.dest",
+          "age"
+        ]
+      },
+      {
+        "check": "target_leakage",
+        "severity": "error",
+        "message": "1 feature(s) show suspiciously high association with 'survived' (threshold=0.95).",
+        "affected_columns": [
+          "name"
+        ]
+      },
+      {
+        "check": "covariate_drift",
+        "severity": "error",
+        "message": "4 feature(s) show distributional shift between dataset halves (split by index (first/second half)). 3 with high PSI (> 0.25).",
+        "affected_columns": [
+          "pclass",
+          "age",
+          "sibsp",
+          "fare"
+        ]
+      },
+      {
+        "check": "outliers",
+        "severity": "warning",
+        "message": "99 outlier(s) across 2 column(s) (method=iqr, threshold=3.0).",
+        "affected_columns": [
+          "sibsp",
+          "fare"
+        ]
+      },
+      {
+        "check": "id_column_leakage",
+        "severity": "warning",
+        "message": "1 column(s) have unique-value ratio >= 90% and may act as row identifiers.",
+        "affected_columns": [
+          "name"
+        ]
+      }
+    ],
+    "top_recommendations": [
+      {
+        "action": "Drop columns with > 50 % missing: ['cabin', 'boat']",
+        "rationale": "Columns missing more than half their values provide more noise than signal and may destabilise imputation."
+      },
+      {
+        "action": "Remove leaky features immediately: ['name']",
+        "rationale": "These features are almost perfectly correlated with the target \u2014 they are either derived from the outcome or are recorded after it. Keeping them will produce inflated validation scores that collapse in production."
+      },
+      {
+        "action": "Investigate distribution shift in: ['pclass', 'age', 'sibsp', 'fare']",
+        "rationale": "Different feature distributions in different data periods mean the model trained on early data may not generalise to recent data."
+      }
+    ]
+  },
+  {
+    "name": "Adult Census Income",
+    "rows": 48842,
+    "cols": 15,
+    "target_col": "income",
+    "readiness_score": 92.4,
+    "grade": "A",
+    "checks_passed": 15,
+    "checks_total": 20,
+    "top_findings": [
+      {
+        "check": "missing_values",
+        "severity": "warning",
+        "message": "2 column(s) exceed 5% missing-value rate.",
+        "affected_columns": [
+          "occupation",
+          "workclass"
+        ]
+      },
+      {
+        "check": "duplicates",
+        "severity": "warning",
+        "message": "52 duplicate row(s) found (0.1% of dataset)."
+      },
+      {
+        "check": "outliers",
+        "severity": "warning",
+        "message": "6854 outlier(s) across 2 column(s) (method=iqr, threshold=3.0).",
+        "affected_columns": [
+          "fnlwgt",
+          "hours-per-week"
+        ]
+      },
+      {
+        "check": "train_test_overlap",
+        "severity": "warning",
+        "message": "19 row(s) (0.0%) appear in both the simulated train and test splits."
+      },
+      {
+        "check": "distribution_shape",
+        "severity": "warning",
+        "message": "2 feature(s) have highly non-normal distributions (|skew| > 2.0 or excess kurtosis > 7.0). Consider variance-stabilising transforms.",
+        "affected_columns": [
+          "capital-gain",
+          "capital-loss"
+        ]
+      }
+    ],
+    "top_recommendations": [
+      {
+        "action": "Deduplicate dataset before any train/test split",
+        "rationale": "19 rows appear in both simulated splits. The model sees test samples during training, giving unrealistically optimistic scores."
+      }
+    ]
+  },
+  {
+    "name": "German Credit",
+    "rows": 1000,
+    "cols": 21,
+    "target_col": "credit_risk",
+    "readiness_score": 97.5,
+    "grade": "A",
+    "checks_passed": 18,
+    "checks_total": 20,
+    "top_findings": [
+      {
+        "check": "outliers",
+        "severity": "warning",
+        "message": "25 outlier(s) across 2 column(s) (method=iqr, threshold=3.0).",
+        "affected_columns": [
+          "duration",
+          "credit_amount"
+        ]
+      },
+      {
+        "check": "feature_relevance",
+        "severity": "warning",
+        "message": "3 feature(s) have near-zero mutual information with the target (normalised MI < 0.01). They may be pure noise.",
+        "affected_columns": [
+          "installment_commitment",
+          "residence_since",
+          "existing_credits"
+        ]
+      }
+    ],
+    "top_recommendations": []
+  }
+]

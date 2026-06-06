@@ -116,4 +116,21 @@ semantic_leakage:
   risk_threshold: medium      # flag features with risk >= this level
   # AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be set as env vars
 
+scoring:
+  dimension_weights:
+    quality:     0.25   # contribution of quality dimension to overall score
+    leakage:     0.35   # contribution of leakage dimension (highest: silent and catastrophic)
+    features:    0.25   # contribution of feature analysis dimension
+    sufficiency: 0.15   # contribution of sufficiency dimension
+  severity_penalties:
+    error:   15.0       # points deducted per failed check at error severity
+    warning:  5.0       # points deducted per failed check at warning severity
+    info:     0.0
+  leakage_multiplier: 1.5   # leakage penalties are amplified by this factor
+  grade_thresholds:
+    A: 85
+    B: 70
+    C: 55
+    D: 40
+
 plugins: []    # list of dotted module paths to load at startup

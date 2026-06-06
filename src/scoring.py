@@ -1,37 +1,57 @@
 """Dataset Readiness Score — composite 0-100 score across all dimensions (Phase 10)."""
 
 from __future__ import annotations
+from typing import Any
 
 from .utils import CheckResult, DimensionScore, FrameworkReport, ReadinessScore, logger
 
 # ---------------------------------------------------------------------------
-# Penalty weights
+# Default penalty weights (overridable via config.yaml scoring block)
 # ---------------------------------------------------------------------------
 
-_SEVERITY_PENALTY = {"error": 15.0, "warning": 5.0, "info": 0.0}
+_DEFAULT_SEVERITY_PENALTY: dict[str, float] = {"error": 15.0, "warning": 5.0, "info": 0.0}
 
-# Leakage issues are weighted more heavily: hidden leakage is worse than known quality issues
-_DIMENSION_MULTIPLIERS = {
-    "quality":     1.0,
-    "leakage":     1.5,
-    "features":    1.0,
-}
-
-# Contribution of each dimension to the overall score
-_DIMENSION_WEIGHTS = {
+_DEFAULT_DIMENSION_WEIGHTS: dict[str, float] = {
     "quality":     0.25,
     "leakage":     0.35,
     "features":    0.25,
     "sufficiency": 0.15,
 }
 
-_GRADE_THRESHOLDS = [
+_DEFAULT_LEAKAGE_MULTIPLIER: float = 1.5
+
+_DEFAULT_GRADE_THRESHOLDS: list[tuple[int, str, str]] = [
     (85, "A", "Dataset is ready for ML training"),
     (70, "B", "Dataset is mostly ready — minor issues detected"),
     (55, "C", "Significant issues — address before training"),
     (40, "D", "Major issues — unreliable model performance expected"),
     (0,  "F", "Dataset is not suitable for ML training"),
 ]
+
+
+def _resolve_config(config: dict[str, Any] | None) -> tuple[
+    dict[str, float], dict[str, float], float, list[tuple[int, str, str]]
+]:
+    """Extract scoring parameters from config block, falling back to defaults."""
+    cfg = config or {}
+    penalties = {**_DEFAULT_SEVERITY_PENALTY,
+                 **cfg.get("severity_penalties", {})}
+    weights = {**_DEFAULT_DIMENSION_WEIGHTS,
+               **cfg.get("dimension_weights", {})}
+    multiplier: float = float(cfg.get("leakage_multiplier", _DEFAULT_LEAKAGE_MULTIPLIER))
+    raw_thr = cfg.get("grade_thresholds", {})
+    if raw_thr:
+        grade_map = {"A": 85, "B": 70, "C": 55, "D": 40, **raw_thr}
+        thresholds = [
+            (int(grade_map["A"]), "A", "Dataset is ready for ML training"),
+            (int(grade_map["B"]), "B", "Dataset is mostly ready --- minor issues detected"),
+            (int(grade_map["C"]), "C", "Significant issues --- address before training"),
+            (int(grade_map["D"]), "D", "Major issues --- unreliable model performance expected"),
+            (0,                   "F", "Dataset is not suitable for ML training"),
+        ]
+    else:
+        thresholds = _DEFAULT_GRADE_THRESHOLDS
+    return penalties, weights, multiplier, thresholds
 
 
 # ---------------------------------------------------------------------------
@@ -41,15 +61,17 @@ _GRADE_THRESHOLDS = [
 def _score_results(
     results: list[CheckResult],
     multiplier: float = 1.0,
+    severity_penalty: dict[str, float] | None = None,
 ) -> DimensionScore:
     """Convert a list of CheckResults into a DimensionScore."""
+    penalties = severity_penalty if severity_penalty is not None else _DEFAULT_SEVERITY_PENALTY
     if not results:
         return DimensionScore(
             score=100.0, checks_total=0, checks_passed=0, errors=0, warnings=0
         )
 
     penalty = sum(
-        _SEVERITY_PENALTY.get(r.severity, 0.0) * multiplier
+        penalties.get(r.severity, 0.0) * multiplier
         for r in results
         if not r.passed
     )
@@ -106,21 +128,30 @@ def _sufficiency_score(metadata: dict) -> DimensionScore:
     )
 
 
-def _derive_grade(score: float) -> tuple[str, str]:
-    for threshold, grade, label in _GRADE_THRESHOLDS:
+def _derive_grade(
+    score: float,
+    thresholds: list[tuple[int, str, str]] | None = None,
+) -> tuple[str, str]:
+    thr = thresholds if thresholds is not None else _DEFAULT_GRADE_THRESHOLDS
+    for threshold, grade, label in thr:
         if score >= threshold:
             return grade, label
-    return "F", _GRADE_THRESHOLDS[-1][2]
+    return "F", thr[-1][2]
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def compute_readiness_score(report: FrameworkReport) -> ReadinessScore:
+def compute_readiness_score(
+    report: FrameworkReport,
+    config: dict[str, Any] | None = None,
+) -> ReadinessScore:
     """Compute the composite Dataset Readiness Score from a FrameworkReport.
 
-    The score aggregates four weighted dimensions:
+    All weights and penalties are configurable via the ``scoring`` block in
+    ``config.yaml`` (or the ``config`` argument).  When not supplied the
+    built-in defaults are used:
 
     - **Quality (25 %)**: penalises dataset quality failures.
     - **Leakage (35 %)**: penalises leakage detections with 1.5× multiplier.
@@ -131,29 +162,32 @@ def compute_readiness_score(report: FrameworkReport) -> ReadinessScore:
 
     Args:
         report: Fully populated FrameworkReport.
+        config: Optional ``scoring`` config block.  Keys: ``dimension_weights``,
+            ``severity_penalties``, ``leakage_multiplier``, ``grade_thresholds``.
 
     Returns:
         :class:`~src.utils.ReadinessScore` with overall score, letter grade,
         and per-dimension breakdown.
     """
-    quality     = _score_results(report.quality_results,  _DIMENSION_MULTIPLIERS["quality"])
-    leakage     = _score_results(report.leakage_results,  _DIMENSION_MULTIPLIERS["leakage"])
-    features    = _score_results(report.feature_results,  _DIMENSION_MULTIPLIERS["features"])
-    # Phase 11: use actual sufficiency check results when available
+    penalties, weights, leakage_mult, grade_thr = _resolve_config(config)
+
+    quality     = _score_results(report.quality_results,  1.0,           penalties)
+    leakage     = _score_results(report.leakage_results,  leakage_mult,  penalties)
+    features    = _score_results(report.feature_results,  1.0,           penalties)
     sufficiency = (
-        _score_results(report.sufficiency_results)
+        _score_results(report.sufficiency_results, 1.0, penalties)
         if report.sufficiency_results
         else _sufficiency_score(report.metadata)
     )
 
     overall = round(
-        quality.score     * _DIMENSION_WEIGHTS["quality"]
-        + leakage.score   * _DIMENSION_WEIGHTS["leakage"]
-        + features.score  * _DIMENSION_WEIGHTS["features"]
-        + sufficiency.score * _DIMENSION_WEIGHTS["sufficiency"],
+        quality.score       * weights["quality"]
+        + leakage.score     * weights["leakage"]
+        + features.score    * weights["features"]
+        + sufficiency.score * weights["sufficiency"],
         1,
     )
-    grade, label = _derive_grade(overall)
+    grade, label = _derive_grade(overall, grade_thr)
 
     score = ReadinessScore(
         overall=overall,

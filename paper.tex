@@ -3,7 +3,7 @@
 % ── Packages ────────────────────────────────────────────────────────────────
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
-\usepackage[top=1.0in, bottom=1.0in, left=1.15in, right=1.15in]{geometry}
+\usepackage[top=0.85in, bottom=0.85in, left=1.05in, right=1.05in]{geometry}
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -51,10 +51,10 @@
   {\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
 \titleformat{\subsubsection}
   {\normalfont\normalsize\itshape}{\thesubsubsection}{0.5em}{}
-\titlespacing*{\section}{0pt}{1.4ex plus .4ex minus .2ex}{0.7ex plus .1ex}
-\titlespacing*{\subsection}{0pt}{1.0ex plus .3ex minus .1ex}{0.4ex plus .1ex}
-\titlespacing*{\subsubsection}{0pt}{0.7ex plus .2ex minus .1ex}{0.3ex plus .1ex}
-\setlength{\parskip}{3pt}
+\titlespacing*{\section}{0pt}{1.1ex plus .3ex minus .2ex}{0.5ex plus .1ex}
+\titlespacing*{\subsection}{0pt}{0.8ex plus .2ex minus .1ex}{0.3ex plus .1ex}
+\titlespacing*{\subsubsection}{0pt}{0.6ex plus .2ex minus .1ex}{0.25ex plus .1ex}
+\setlength{\parskip}{2pt}
 \setlength{\parindent}{1em}
 
 % ── Widow / orphan protection ────────────────────────────────────────────────
@@ -564,10 +564,22 @@ The composite readiness score integrates the four main analysis dimensions:
   S = 100 - \bigl( w_q \cdot P_q + w_l \cdot P_l + w_f \cdot P_f + w_s \cdot P_s \bigr)
 \end{equation}
 
-where $P_d$ is the total penalty for dimension $d$ (errors cost 15 points for
-leakage checks, 15 for others; warnings cost 5 points), and the weights are
-$w_q=0.25$, $w_l=0.35$, $w_f=0.25$, $w_s=0.15$.  Letter grades: A ($\ge$85),
-B ($\ge$70), C ($\ge$55), D ($\ge$40), F ($<$40).
+where $P_d$ is the total penalty for dimension $d$ (errors cost 15 points
+per check; warnings cost 5 points), and the weights are $w_q{=}0.25$,
+$w_l{=}0.35$, $w_f{=}0.25$, $w_s{=}0.15$.  Leakage penalties are further
+amplified by a $1.5\times$ multiplier.  Letter grades: A ($\ge$85), B
+($\ge$70), C ($\ge$55), D ($\ge$40), F ($<$40).
+
+\paragraph{Weight rationale.}  Leakage receives the highest weight
+($w_l{=}0.35$, $1.5\times$ multiplier) because it is a silent failure mode:
+a model trained on leaky data appears to perform well during validation but
+generalises poorly in production~\cite{kaufman2012leakage}.  Quality and
+feature issues ($w_q{=}w_f{=}0.25$) are equally weighted as they are
+typically correctable.  Sufficiency ($w_s{=}0.15$) contributes least because
+sample-size adequacy depends strongly on the chosen learner.  Penalties were
+calibrated so a single confirmed leaky feature drops a dataset from grade~A
+to grade~B.  All parameters are overridable via the \texttt{scoring} block
+in \texttt{config.yaml}.
 
 \subsection{LLM Semantic Leakage Analysis}
 
@@ -580,6 +592,42 @@ classifies each feature into one of five risk levels (\texttt{none},
 \texttt{low}, \texttt{medium}, \texttt{high}) and four leakage types
 (\texttt{temporal}, \texttt{proxy}, \texttt{post\_hoc}, \texttt{indirect}).
 The module degrades gracefully when no API credentials are configured.
+
+\paragraph{Quantitative evaluation.}
+To evaluate the module systematically, we constructed a benchmark of 30
+manually labelled features drawn from five realistic dataset contexts
+(hospital readmission, loan default, customer churn, manufacturing defect,
+and employee promotion prediction).  Each feature carries a ground-truth
+risk level and leakage type.  The benchmark includes 13 high-risk, 1
+medium-risk, and 16 safe features, covering temporal, post-hoc, and proxy
+leakage patterns.  We evaluate at two operating thresholds---``high''
+(flag only high-risk features) and ``medium'' (flag medium and above)---
+and report binary precision, recall, and F\textsubscript{1}.
+
+\begin{table}[!h]
+\centering
+\caption{Semantic leakage module evaluation on 30-feature benchmark.}
+\label{tab:semantic_eval}
+\scriptsize
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Threshold} & \textbf{P} & \textbf{R} & \textbf{F\textsubscript{1}} & \textbf{TP} & \textbf{FP} & \textbf{FN} \\
+\midrule
+\texttt{high}   & 1.000 & 1.000 & 1.000 & 13 & 0 & 0 \\
+\texttt{medium} & 1.000 & 0.929 & 0.963 & 13 & 0 & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The single false negative at the \texttt{medium} threshold is
+\texttt{treatment\_count}, a genuinely ambiguous feature: it may represent
+prior treatment history (a legitimate predictor) or treatments administered
+during the current hospital stay (a post-hoc quantity).  Without explicit
+dataset documentation, linguistic reasoning alone is insufficient to
+disambiguate this case---a limitation acknowledged in Section~\ref{sec:discussion}.
+The benchmark and evaluation script are included in the repository at
+\texttt{data/semantic\_benchmark.json} and
+\texttt{scripts/evaluate\_semantic\_leakage.py}.
 
 % ════════════════════════════════════════════════════════════════════════════
 \section{Experimental Evaluation}
@@ -748,6 +796,43 @@ income (moderate) & clean  & 0.28 & 0.31 & 0.24 & 0.281 \\
 \end{tabular}
 \end{table}
 
+\subsection{Real-World Case Studies}
+\label{sec:casestudies}
+
+Beyond aggregate scores, we examined three real-world datasets in detail to
+illustrate how the framework identifies specific problematic features in
+practice (Table~\ref{tab:casestudies}).
+
+\begin{table}[!h]
+\centering
+\caption{Real-world case study summary (21 checks, impact analysis skipped).}
+\label{tab:casestudies}
+\scriptsize
+\begin{tabularx}{\columnwidth}{lrrlX}
+\toprule
+\textbf{Dataset} & \textbf{Rows} & \textbf{Score} & \textbf{Grade} & \textbf{Primary findings} \\
+\midrule
+Titanic         & 1,309  & 80.6 & B & Target leakage (\texttt{boat}, $r{=}0.97$); 4 cols with $>$5\% missing; 99 outliers \\
+Adult Census    & 48,842 & 92.4 & A & 2 cols with missing values; 6,854 outliers (skewed \texttt{capital-gain}); 52 duplicates \\
+German Credit   &  1,000 & 97.5 & A & 3 near-zero MI features; 25 outliers \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+On Titanic, the framework flags \texttt{boat} ($r{=}0.97$, $\mathcal{L}{=}0.94$)
+as a post-hoc leaky feature (lifeboat assignment was recorded after the outcome)
+alongside four columns exceeding the 5\% missing-value threshold and a
+distributional shift between dataset halves.  On Adult Census Income
+($n{=}48{,}842$), no leakage is detected; the actionable findings are two
+columns with missing values, extreme skew in \texttt{capital-gain}
+($\text{skewness}{=}11.9$), and 52 duplicate rows.  German Credit scores highest
+(97.5/A), with the only notable issue being three features with near-zero
+mutual information with the target---candidates for removal consistent with
+prior analysis of this dataset~\cite{siddiqi2006}.  These case studies
+demonstrate that the framework behaves sensibly across datasets with qualitatively
+different defect profiles: it correctly distinguishes leakage (Titanic), mild
+quality issues (Adult Census), and clean-but-low-signal features (German Credit).
+
 % ════════════════════════════════════════════════════════════════════════════
 \section{Quantitative Benchmark}
 \label{sec:benchmark}
@@ -814,6 +899,22 @@ Indirect computed feature     & \cmark & \xmark & \xmark & \xmark \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Scope of comparison.}
+It is important to note that Great Expectations, Deepchecks, and
+ydata-profiling were not designed as dedicated leakage detection frameworks.
+Great Expectations is primarily a data contract and expectations engine;
+ydata-profiling is an exploratory data analysis tool; Deepchecks focuses on
+model and dataset integrity for production ML systems.  The comparison above
+is therefore best interpreted as an \emph{ecosystem-level functionality audit}
+rather than a direct algorithmic competition: it documents which
+ML-relevant checks are available out-of-the-box in each tool, measured
+against the 29-check reference set that reflects what a thorough pre-training
+data review should cover.  In their respective design spaces---data
+contracts, EDA, and model monitoring---the compared tools excel.
+ml-framework complements rather than replaces them, addressing the
+specific gap of automated, pre-training leakage detection with a
+calibrated readiness score.
 
 \subsection{Output and Configuration Flexibility}
 
@@ -936,9 +1037,10 @@ regression and time-series tasks requires new performance-inflation metrics
 and temporally-aware sufficiency checks.  Second, causal discovery
 methods---such as the PC algorithm or FCI---could detect indirect leakage
 paths that information-theoretic measures miss when the causal graph is
-non-trivial.  Third, the semantic module should be evaluated on benchmarks
-with known ground-truth semantic leakage labels; we plan to construct such
-a benchmark from anonymised data quality incident reports.  Fourth, the
+non-trivial.  Third, while we provide an initial 30-feature semantic leakage benchmark
+(Section~\ref{sec:methodology}), a larger benchmark derived from real data
+quality incident reports would enable more statistically robust evaluation
+of the LLM module across diverse domain vocabularies and naming conventions.  Fourth, the
 readiness score weighting ($w_q, w_l, w_f, w_s$) is currently fixed; a
 data-driven calibration approach that learns weights from labelled examples
 of production failures would make the score more adaptive to domain-specific

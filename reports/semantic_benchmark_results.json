@@ -1,0 +1,392 @@
+{
+  "benchmark_size": 30,
+  "mode": "mock",
+  "results": {
+    "medium": {
+      "metrics": {
+        "precision": 1.0,
+        "recall": 0.929,
+        "f1": 0.963,
+        "tp": 13,
+        "fp": 0,
+        "fn": 1,
+        "tn": 16
+      },
+      "per_feature": [
+        {
+          "feature": "patient_age",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "blood_pressure_admission",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "heart_rate_admission",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "discharge_code",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "days_in_hospital",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "treatment_count",
+          "ground_truth": "medium",
+          "predicted": "low",
+          "verdict": "FN"
+        },
+        {
+          "feature": "lab_result_admission",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "discharge_medications",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "credit_score",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "annual_income",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "loan_amount",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "months_since_last_delinquency",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "final_default_flag",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "post_approval_spending",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "customer_tenure_months",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "monthly_charges",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "num_support_tickets_last_month",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "future_usage_days",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "cancellation_reason",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "product_category",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "inlet_temperature",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "pressure_reading",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "defect_code",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "final_quality_score",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "batch_rejection_rate",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "years_experience",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "education_level",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "performance_outcome_label",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "training_completion_post_hire",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "salary_after_promotion",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        }
+      ]
+    },
+    "high": {
+      "metrics": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 13,
+        "fp": 0,
+        "fn": 0,
+        "tn": 17
+      },
+      "per_feature": [
+        {
+          "feature": "patient_age",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "blood_pressure_admission",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "heart_rate_admission",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "discharge_code",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "days_in_hospital",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "treatment_count",
+          "ground_truth": "medium",
+          "predicted": "low",
+          "verdict": "TN"
+        },
+        {
+          "feature": "lab_result_admission",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "discharge_medications",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "credit_score",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "annual_income",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "loan_amount",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "months_since_last_delinquency",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "final_default_flag",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "post_approval_spending",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "customer_tenure_months",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "monthly_charges",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "num_support_tickets_last_month",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "future_usage_days",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "cancellation_reason",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "product_category",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "inlet_temperature",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "pressure_reading",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "defect_code",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "final_quality_score",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "batch_rejection_rate",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "years_experience",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "education_level",
+          "ground_truth": "none",
+          "predicted": "none",
+          "verdict": "TN"
+        },
+        {
+          "feature": "performance_outcome_label",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "training_completion_post_hire",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        },
+        {
+          "feature": "salary_after_promotion",
+          "ground_truth": "high",
+          "predicted": "high",
+          "verdict": "TP"
+        }
+      ]
+    }
+  }
+}

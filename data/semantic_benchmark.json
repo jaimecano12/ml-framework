@@ -1,0 +1,212 @@
+[
+  {
+    "feature_name": "patient_age",
+    "dataset_context": "Hospital readmission prediction: predict 30-day readmission at the time of hospital admission",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Demographic feature available at admission time"
+  },
+  {
+    "feature_name": "blood_pressure_admission",
+    "dataset_context": "Hospital readmission prediction: predict 30-day readmission at the time of hospital admission",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Measured at admission, legitimately available"
+  },
+  {
+    "feature_name": "heart_rate_admission",
+    "dataset_context": "Hospital readmission prediction: predict 30-day readmission at the time of hospital admission",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Measured at admission, legitimately available"
+  },
+  {
+    "feature_name": "discharge_code",
+    "dataset_context": "Hospital readmission prediction: predict 30-day readmission at the time of hospital admission",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "post_hoc",
+    "notes": "Discharge codes are assigned at the end of the hospital stay, after outcome is determined"
+  },
+  {
+    "feature_name": "days_in_hospital",
+    "dataset_context": "Hospital readmission prediction: predict 30-day readmission at the time of hospital admission",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "post_hoc",
+    "notes": "Length of stay is only known after discharge, not at admission"
+  },
+  {
+    "feature_name": "treatment_count",
+    "dataset_context": "Hospital readmission prediction: predict 30-day readmission at the time of hospital admission",
+    "ground_truth_risk": "medium",
+    "ground_truth_leakage_type": "temporal",
+    "notes": "Could reflect treatments during the current stay (post-hoc) or prior history (legitimate); ambiguous"
+  },
+  {
+    "feature_name": "lab_result_admission",
+    "dataset_context": "Hospital readmission prediction: predict 30-day readmission at the time of hospital admission",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Lab results ordered and available at admission"
+  },
+  {
+    "feature_name": "discharge_medications",
+    "dataset_context": "Hospital readmission prediction: predict 30-day readmission at the time of hospital admission",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "post_hoc",
+    "notes": "Discharge prescription is determined at end of stay, encodes outcome information"
+  },
+  {
+    "feature_name": "credit_score",
+    "dataset_context": "Loan default prediction: predict whether a borrower will default within 12 months of loan origination",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Credit score is computed before loan issuance"
+  },
+  {
+    "feature_name": "annual_income",
+    "dataset_context": "Loan default prediction: predict whether a borrower will default within 12 months of loan origination",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Reported income at application time"
+  },
+  {
+    "feature_name": "loan_amount",
+    "dataset_context": "Loan default prediction: predict whether a borrower will default within 12 months of loan origination",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Fixed at origination"
+  },
+  {
+    "feature_name": "months_since_last_delinquency",
+    "dataset_context": "Loan default prediction: predict whether a borrower will default within 12 months of loan origination",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Historical delinquency is legitimately known at origination"
+  },
+  {
+    "feature_name": "final_default_flag",
+    "dataset_context": "Loan default prediction: predict whether a borrower will default within 12 months of loan origination",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "post_hoc",
+    "notes": "Directly encodes the outcome; this IS the target variable or a copy of it"
+  },
+  {
+    "feature_name": "post_approval_spending",
+    "dataset_context": "Loan default prediction: predict whether a borrower will default within 12 months of loan origination",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "temporal",
+    "notes": "Spending that occurs after loan approval is in the prediction future"
+  },
+  {
+    "feature_name": "customer_tenure_months",
+    "dataset_context": "Customer churn prediction: predict whether a customer will cancel their subscription in the next 30 days",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "How long they have been a customer, available at prediction time"
+  },
+  {
+    "feature_name": "monthly_charges",
+    "dataset_context": "Customer churn prediction: predict whether a customer will cancel their subscription in the next 30 days",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Current plan pricing, known before churn event"
+  },
+  {
+    "feature_name": "num_support_tickets_last_month",
+    "dataset_context": "Customer churn prediction: predict whether a customer will cancel their subscription in the next 30 days",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Prior-period activity, legitimately available"
+  },
+  {
+    "feature_name": "future_usage_days",
+    "dataset_context": "Customer churn prediction: predict whether a customer will cancel their subscription in the next 30 days",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "temporal",
+    "notes": "Usage measured after the prediction date — future information"
+  },
+  {
+    "feature_name": "cancellation_reason",
+    "dataset_context": "Customer churn prediction: predict whether a customer will cancel their subscription in the next 30 days",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "post_hoc",
+    "notes": "Only exists after the customer has churned — post-hoc label"
+  },
+  {
+    "feature_name": "product_category",
+    "dataset_context": "Customer churn prediction: predict whether a customer will cancel their subscription in the next 30 days",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Plan type, known at prediction time"
+  },
+  {
+    "feature_name": "inlet_temperature",
+    "dataset_context": "Manufacturing defect prediction: predict whether a unit produced in a batch will fail quality inspection",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Process sensor reading measured during production"
+  },
+  {
+    "feature_name": "pressure_reading",
+    "dataset_context": "Manufacturing defect prediction: predict whether a unit produced in a batch will fail quality inspection",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Process sensor reading measured during production"
+  },
+  {
+    "feature_name": "defect_code",
+    "dataset_context": "Manufacturing defect prediction: predict whether a unit produced in a batch will fail quality inspection",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "post_hoc",
+    "notes": "Defect codes are assigned after quality inspection — after the outcome"
+  },
+  {
+    "feature_name": "final_quality_score",
+    "dataset_context": "Manufacturing defect prediction: predict whether a unit produced in a batch will fail quality inspection",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "post_hoc",
+    "notes": "Score assigned by inspector after the inspection event"
+  },
+  {
+    "feature_name": "batch_rejection_rate",
+    "dataset_context": "Manufacturing defect prediction: predict whether a unit produced in a batch will fail quality inspection",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "proxy",
+    "notes": "Proportion of rejects in the batch is computed from the same inspection labels as the target"
+  },
+  {
+    "feature_name": "years_experience",
+    "dataset_context": "Employee promotion prediction: predict whether an employee will be promoted within the next year",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Years of experience at review time, legitimately available"
+  },
+  {
+    "feature_name": "education_level",
+    "dataset_context": "Employee promotion prediction: predict whether an employee will be promoted within the next year",
+    "ground_truth_risk": "none",
+    "ground_truth_leakage_type": "none",
+    "notes": "Credential known before promotion decision"
+  },
+  {
+    "feature_name": "performance_outcome_label",
+    "dataset_context": "Employee promotion prediction: predict whether an employee will be promoted within the next year",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "post_hoc",
+    "notes": "Performance label assigned after the review cycle completes"
+  },
+  {
+    "feature_name": "training_completion_post_hire",
+    "dataset_context": "Employee promotion prediction: predict whether an employee will be promoted within the next year",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "temporal",
+    "notes": "Training completed after hire date — if prediction is at hire time, this is future information"
+  },
+  {
+    "feature_name": "salary_after_promotion",
+    "dataset_context": "Employee promotion prediction: predict whether an employee will be promoted within the next year",
+    "ground_truth_risk": "high",
+    "ground_truth_leakage_type": "temporal",
+    "notes": "Salary adjustment that only occurs if and after promotion — directly encodes target outcome"
+  }
+]

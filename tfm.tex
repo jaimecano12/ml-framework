@@ -3,7 +3,7 @@
 % ── Packages ────────────────────────────────────────────────────────────────
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
-\usepackage[top=2.5cm, bottom=2.5cm, left=3.0cm, right=2.5cm]{geometry}
+\usepackage[top=2.54cm, bottom=2.54cm, left=2.54cm, right=2.54cm]{geometry}
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -32,21 +32,32 @@
 \usepackage{emptypage}
 \usepackage{tocloft}
 
-% ── Spacing ─────────────────────────────────────────────────────────────────
-\onehalfspacing
-\setlength{\parskip}{4pt}
-\setlength{\parindent}{1.2em}
+% ── Colours matching tfm.docx Word template ──────────────────────────────────
+\definecolor{upmOrange}{HTML}{FF8000}   % Ttulo2 heading colour
+\definecolor{upmBlue}{HTML}{243F60}     % Ttulo3 heading colour
+
+% ── Spacing (Word: line=240 single, after=120 ≈ 6pt) ────────────────────────
+\singlespacing
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
 \renewcommand{\arraystretch}{1.15}
 
-% ── Chapter / Section formatting ────────────────────────────────────────────
+% ── Chapter / Section formatting matching tfm.docx ───────────────────────────
+% Ttulo1: 18pt bold black (chapter headings)
 \titleformat{\chapter}[display]
-  {\normalfont\Large\bfseries}{\chaptername\ \thechapter}{12pt}{\Large}
-\titlespacing*{\chapter}{0pt}{30pt}{20pt}
-\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.7em}{}
-\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
-\titleformat{\subsubsection}{\normalfont\normalsize\itshape}{\thesubsubsection}{0.5em}{}
-\titlespacing*{\section}{0pt}{1.4ex plus .4ex}{0.7ex}
-\titlespacing*{\subsection}{0pt}{1.0ex plus .3ex}{0.4ex}
+  {\normalfont\fontsize{18}{22}\bfseries}{\chaptername\ \thechapter}{10pt}{\fontsize{18}{22}}
+\titlespacing*{\chapter}{0pt}{24pt}{16pt}
+% Ttulo2: 14pt bold orange, no numbering prefix indent (section headings)
+\titleformat{\section}
+  {\normalfont\fontsize{14}{17}\bfseries\color{upmOrange}}{\thesection}{0.7em}{}
+\titlespacing*{\section}{0pt}{15pt plus 3pt}{6pt}
+% Ttulo3: 12pt bold dark-blue (subsection headings)
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries\color{upmBlue}}{\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{12pt plus 2pt}{4pt}
+% subsubsection: italic dark-blue
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\itshape\color{upmBlue}}{\thesubsubsection}{0.5em}{}
 
 % ── Headers & footers ────────────────────────────────────────────────────────
 \pagestyle{fancy}
@@ -91,64 +102,97 @@
 % ════════════════════════════════════════════════════════════════════════════
 \begin{document}
 
-% ── Cover page ───────────────────────────────────────────────────────────────
+% ── Cover page 1 — UPM (matches tfm.docx first page) ─────────────────────────
 \begin{titlepage}
+\thispagestyle{empty}
 \centering
-\vspace*{1.5cm}
-{\Large\bfseries UNIVERSIDAD POLIT\'ECNICA DE MADRID\\[0.4em]
-ESCUELA T\'ECNICA SUPERIOR\\DE INGENIEROS DE TELECOMUNICACI\'ON}
-\vspace{1.5cm}
-
-\rule{\textwidth}{1.5pt}\\[0.3em]
-{\large M\'ASTER UNIVERSITARIO EN INGENIER\'IA DE TELECOMUNICACI\'ON}\\[0.3em]
-{\large TRABAJO FIN DE M\'ASTER}\\
-\rule{\textwidth}{1.5pt}
+\vspace*{2cm}
+{\fontsize{14}{17}\bfseries
+M\'ASTER UNIVERSITARIO EN INGENIER\'IA DE\\[0.4em]
+TELECOMUNICACI\'ON}
 
 \vspace{1.5cm}
-{\LARGE\bfseries An Automated Framework for Dataset Quality\\[0.3em]
-Assessment and Data Leakage Detection\\[0.3em]
-in Machine Learning}
+{\fontsize{16}{19}\bfseries TRABAJO FIN DE M\'ASTER}
 
 \vspace{2cm}
-{\large\bfseries JAIME CANO MORA\~{N}O}\\[0.5em]
-{\normalsize Madríd, 2025--2026}
+{\fontsize{14}{17}\bfseries\MakeUppercase{%
+An Automated Framework for Dataset Quality Assessment\\[0.3em]
+and Data Leakage Detection in Machine Learning}}
+
+\vspace{2.5cm}
+{\fontsize{13}{16}\bfseries JAIME CANO MORA\~{N}O}
+
+\vspace{1cm}
+{\normalsize 2025--26}
 
 \vfill
 \end{titlepage}
 
-% ── Inner title page ─────────────────────────────────────────────────────────
+% ── Cover page 2 — UPM with institution (matches tfm.docx second page) ───────
 \thispagestyle{empty}
 \begin{center}
-\vspace*{2cm}
-{\Large\bfseries TRABAJO FIN DE M\'ASTER}\\[1.5em]
-\begin{tabular}{ll}
-\textbf{T\'itulo:} & \parbox[t]{0.72\linewidth}{An automated framework for dataset quality
-  assessment and data leakage detection in machine learning}\\[1em]
-\textbf{Autor:}  & D.\ Jaime Cano Mora\~{n}o\\[0.5em]
-\textbf{Tutor:}  & D.\ Yong Zheng\\[0.5em]
-\textbf{Ponente:} & D.\ Pedro Reviriego Vasallo\\[0.5em]
-\textbf{Departamento:} & Departamento de Ingenier\'ia de Sistemas Telem\'aticos\\
-\end{tabular}
+\vspace*{1cm}
+{\fontsize{14}{17}\bfseries
+UNIVERSIDAD POLIT\'ECNICA DE MADRID\\[0.3em]
+ESCUELA T\'ECNICA SUPERIOR\\[0.3em]
+DE INGENIEROS DE TELECOMUNICACI\'ON}
+
+\vspace{1.2cm}
+{\fontsize{14}{17}\bfseries M\'ASTER UNIVERSITARIO EN INGENIER\'IA DE TELECOMUNICACI\'ON}
+
+\vspace{0.8cm}
+{\fontsize{16}{19}\bfseries TRABAJO FIN DE M\'ASTER}
 
 \vspace{1.5cm}
-{\large\bfseries MIEMBROS DEL TRIBUNAL}\\[0.5em]
-\begin{tabular}{ll}
-Presidente: & D.\ \dotfill\\[0.4em]
-Vocal:      & D.\ \dotfill\\[0.4em]
-Secretario: & D.\ \dotfill\\[0.4em]
+{\fontsize{13}{16}\bfseries\MakeUppercase{%
+An Automated Framework for Dataset Quality Assessment\\[0.3em]
+and Data Leakage Detection in Machine Learning}}
+
+\vspace{1.5cm}
+{\fontsize{13}{16}\bfseries JAIME CANO MORA\~{N}O}
+
+\vspace{0.8cm}
+{\normalsize 2025--26}
+\end{center}
+\clearpage
+
+% ── Inner title page — Datos del TFM ─────────────────────────────────────────
+\thispagestyle{empty}
+\begin{center}
+\vspace*{1.5cm}
+{\fontsize{16}{19}\bfseries TRABAJO FIN DE M\'ASTER}
+
+\vspace{1.2cm}
+\begin{tabular}{@{}p{3cm}p{10cm}@{}}
+\textbf{T\'itulo:}       & An automated framework for dataset quality assessment
+                           and data leakage detection in machine learning\\[0.8em]
+\textbf{Autor:}          & D.\ Jaime Cano Mora\~{n}o\\[0.5em]
+\textbf{Tutor:}          & D.\ Yong Zheng\\[0.5em]
+\textbf{Ponente:}        & D.\ Pedro Reviriego Vasallo\\[0.5em]
+\textbf{Departamento:}   & Departamento de Ingenier\'ia de Sistemas Telem\'aticos\\
+\end{tabular}
+
+\vspace{1.8cm}
+{\fontsize{14}{17}\bfseries Miembros del Tribunal}
+
+\vspace{0.8cm}
+\begin{tabular}{@{}p{3cm}p{10cm}@{}}
+Presidente: & D.\ \dotfill\\[0.5em]
+Vocal:      & D.\ \dotfill\\[0.5em]
+Secretario: & D.\ \dotfill\\[0.5em]
 Suplente:   & D.\ \dotfill\\
 \end{tabular}
 
-\vspace{1cm}
-Los miembros del tribunal arriba nombrados acuerdan otorgar la calificación de: \dotfill
+\vspace{1.2cm}
+Los miembros del tribunal arriba nombrados acuerdan otorgar la calificaci\'on de: \dotfill
 
-\vspace{0.5cm}
-Madrid, a \quad de \quad de 20\ldots
+\vspace{0.6cm}
+Madrid, a \quad\quad de \quad\quad\quad\quad\quad\quad\quad\quad de 20\ldots
 \end{center}
 \clearpage
 
 % ── Abstract (Spanish) ───────────────────────────────────────────────────────
-\chapter*{Resumen}
+\chapter*{\fontsize{16}{19}\selectfont RESUMEN}
 \addcontentsline{toc}{chapter}{Resumen}
 
 El aprendizaje automático se ha convertido en una tecnolog\'ia central en numerosos dominios
@@ -186,7 +230,7 @@ sensibilidad.
 en datos, puntuaci\'on de disponibilidad, informaci\'on mutua, GPT-4o-mini.
 
 % ── Abstract (English) ───────────────────────────────────────────────────────
-\chapter*{Summary}
+\chapter*{\fontsize{16}{19}\selectfont SUMMARY}
 \addcontentsline{toc}{chapter}{Summary}
 
 Machine learning has become a core technology across high-impact domains ranging from

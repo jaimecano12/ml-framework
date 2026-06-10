@@ -14,7 +14,7 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{listings}
-\usepackage{xcolor}
+\usepackage[table]{xcolor}
 \usepackage[hidelinks]{hyperref}
 \usepackage{url}
 \usepackage{pgfplots}
@@ -36,6 +36,11 @@
 \definecolor{upmOrange}{HTML}{FF8000}   % Ttulo2 heading colour
 \definecolor{upmBlue}{HTML}{243F60}     % Ttulo3 heading colour
 
+% ── Table styling ─────────────────────────────────────────────────────────────
+\definecolor{tblHeadBg}{HTML}{243F60}   % header row background = upmBlue
+\definecolor{tblAltRow}{HTML}{EDF1F7}   % light zebra-stripe tint
+\newcommand{\tblhead}{\rowcolor{tblHeadBg}\color{white}\bfseries}
+
 % ── Spacing (Word: line=240 single, after=120 ≈ 6pt) ────────────────────────
 \singlespacing
 \setlength{\parskip}{6pt}
@@ -46,10 +51,12 @@
 % Ttulo1: 18pt bold black (chapter headings)
 \titleformat{\chapter}[display]
   {\normalfont\fontsize{18}{22}\bfseries}{\chaptername\ \thechapter}{10pt}{\fontsize{18}{22}}
+  [\vspace{6pt}{\color{upmBlue}\titlerule[1.4pt]}]
 \titlespacing*{\chapter}{0pt}{24pt}{16pt}
 % Ttulo2: 14pt bold orange, no numbering prefix indent (section headings)
 \titleformat{\section}
   {\normalfont\fontsize{14}{17}\bfseries\color{upmOrange}}{\thesection}{0.7em}{}
+  [{\color{upmOrange!55}\titlerule[0.7pt]}]
 \titlespacing*{\section}{0pt}{15pt plus 3pt}{6pt}
 % Ttulo3: 12pt bold dark-blue (subsection headings)
 \titleformat{\subsection}
@@ -458,9 +465,10 @@ Table~\ref{tab:tool_comparison} summarises the comparison.
 \caption{Comparison of dataset validation approaches.}
 \label{tab:tool_comparison}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{lXcccc}
 \toprule
-\textbf{Tool} & \textbf{Main focus} & \textbf{Leakage} & \textbf{ML impact} & \textbf{Score} & \textbf{Recs.} \\
+\tblhead \textbf{Tool} & \textbf{Main focus} & \textbf{Leakage} & \textbf{ML impact} & \textbf{Score} & \textbf{Recs.} \\
 \midrule
 Great Expectations & Data contracts / rules  & No  & No  & No  & No \\
 ydata-profiling    & EDA / data profiling     & No  & No  & No  & No \\
@@ -515,6 +523,7 @@ ml-framework addresses this gap by providing:
 \end{enumerate}
 
 \section{Objectives}
+\label{sec:objectives}
 
 The main objective of this project is to design, implement, and evaluate an automated
 framework for dataset quality assessment and data leakage detection in machine learning
@@ -747,9 +756,10 @@ Table~\ref{tab:modules} lists the fourteen source modules and their responsibili
 \caption{Source module summary.}
 \label{tab:modules}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{llX}
 \toprule
-\textbf{Module} & \textbf{Phase} & \textbf{Responsibility} \\
+\tblhead \textbf{Module} & \textbf{Phase} & \textbf{Responsibility} \\
 \midrule
 \texttt{utils.py}        & 1  & Shared dataclasses: CheckResult, FrameworkReport, ReadinessScore \\
 \texttt{config.py}       & 2  & YAML loading, deep-merge, section validation \\
@@ -779,12 +789,12 @@ implemented in the framework, organised by module.
 \caption{Complete catalog of ml-framework checks (22 total).}
 \label{tab:all_checks}\\
 \toprule
-\textbf{Module} & \textbf{Check name} & \textbf{Method} & \textbf{Default threshold} \\
+\tblhead \textbf{Module} & \textbf{Check name} & \textbf{Method} & \textbf{Default threshold} \\
 \midrule
 \endfirsthead
 \multicolumn{4}{c}{\tablename\ \thetable\ --- continued}\\
 \toprule
-\textbf{Module} & \textbf{Check name} & \textbf{Method} & \textbf{Default threshold} \\
+\tblhead \textbf{Module} & \textbf{Check name} & \textbf{Method} & \textbf{Default threshold} \\
 \midrule
 \endhead
 \midrule
@@ -887,9 +897,10 @@ columns, and structured details.  Table~\ref{tab:quality} summarises the checks.
 \caption{Quality checks implemented in ml-framework.}
 \label{tab:quality}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{llX}
 \toprule
-\textbf{Check} & \textbf{Method} & \textbf{Description} \\
+\tblhead \textbf{Check} & \textbf{Method} & \textbf{Description} \\
 \midrule
 Missing values & NaN rate $>$ threshold & Flags columns exceeding configurable missing-value rate \\
 Duplicates     & Exact row match       & Detects identical rows; computes overlap after simulated split \\
@@ -1116,9 +1127,10 @@ Table~\ref{tab:tests} summarises the test distribution across modules.
 \caption{Test distribution across modules (325 total).}
 \label{tab:tests}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabular}{lrl}
 \toprule
-\textbf{Test file} & \textbf{Tests} & \textbf{Module(s) covered} \\
+\tblhead \textbf{Test file} & \textbf{Tests} & \textbf{Module(s) covered} \\
 \midrule
 test\_utils.py          & 16 & utils.py \\
 test\_config.py         & 26 & config.py \\
@@ -1271,12 +1283,12 @@ Section~\ref{sec:casestudies}.
 \caption{Development phases of ml-framework (17 phases, 325 tests).}
 \label{tab:phases}\\
 \toprule
-\textbf{Phase} & \textbf{Name} & \textbf{Key artefact(s)} & \textbf{Tests} \\
+\tblhead \textbf{Phase} & \textbf{Name} & \textbf{Key artefact(s)} & \textbf{Tests} \\
 \midrule
 \endfirsthead
 \multicolumn{4}{c}{\tablename\ \thetable\ --- continued}\\
 \toprule
-\textbf{Phase} & \textbf{Name} & \textbf{Key artefact(s)} & \textbf{Tests} \\
+\tblhead \textbf{Phase} & \textbf{Name} & \textbf{Key artefact(s)} & \textbf{Tests} \\
 \midrule
 \endhead
 \midrule
@@ -1336,9 +1348,10 @@ all twelve.
 \caption{The twelve-dataset evaluation suite.}
 \label{tab:datasets}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{lllX}
 \toprule
-\textbf{Dataset} & \textbf{Type} & \textbf{Rows} & \textbf{Primary purpose / defect profile} \\
+\tblhead \textbf{Dataset} & \textbf{Type} & \textbf{Rows} & \textbf{Primary purpose / defect profile} \\
 \midrule
 \texttt{clean\_dataset} & Synthetic & 500 & Control with no injected defects (validates zero false positives) \\
 \texttt{dirty\_dataset} & Synthetic & 5,300 & Missing values, duplicates, outliers, class imbalance \\
@@ -1382,9 +1395,10 @@ positives.  Datasets with quality and leakage issues are appropriately downgrade
 \centering
 \caption{Readiness scores on five datasets (22 checks each).}
 \label{tab:readiness}
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{lrrrlX}
 \toprule
-\textbf{Dataset} & \textbf{Score} & \textbf{Grade} & \textbf{Pass/Total} & \textbf{Key findings} \\
+\tblhead \textbf{Dataset} & \textbf{Score} & \textbf{Grade} & \textbf{Pass/Total} & \textbf{Key findings} \\
 \midrule
 clean\_dataset & 95.0 & A & 21/21 & Zero false positives (control) \\
 dirty\_dataset & 65.0 & C & 12/21 & 5 quality issues, 2 sufficiency \\
@@ -1441,9 +1455,10 @@ Section~\ref{sec:lrsvalidation} rather than for full readiness scoring).
 \centering
 \caption{Readiness scores on four additional UCI datasets.}
 \label{tab:uci}
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{lrrlX}
 \toprule
-\textbf{Dataset} & \textbf{Rows} & \textbf{Score} & \textbf{Grade} & \textbf{Primary issues} \\
+\tblhead \textbf{Dataset} & \textbf{Rows} & \textbf{Score} & \textbf{Grade} & \textbf{Primary issues} \\
 \midrule
 Adult Census     & 48,842 & 92.4 & A & Class imbalance (76/24\%), missing values \\
 German Credit    & 1,000  & 97.5 & A & 3 near-zero MI features \\
@@ -1465,9 +1480,10 @@ Table~\ref{tab:impact} reports results for the three core evaluation datasets.
 \caption{Impact analysis: accuracy delta before vs.\ after cleaning.}
 \label{tab:impact}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabular}{lrrr}
 \toprule
-\textbf{Dataset} & \textbf{Baseline acc.} & \textbf{Cleaned acc.} & $\boldsymbol{\Delta}$ \\
+\tblhead \textbf{Dataset} & \textbf{Baseline acc.} & \textbf{Cleaned acc.} & $\boldsymbol{\Delta}$ \\
 \midrule
 clean\_dataset  & 0.917 & 0.913 & $-0.004$ \\
 dirty\_dataset  & 0.881 & 0.903 & $+0.022$ \\
@@ -1496,9 +1512,10 @@ remain below 0.30.
 \caption{Unified leakage risk scores $\mathcal{L}(f)$ per component.}
 \label{tab:lrs}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabular}{llrrrr}
 \toprule
-\textbf{Feature} & \textbf{Type} & $\rho$ & $\tilde{I}$ & $\pi$ & $\mathcal{L}$ \\
+\tblhead \textbf{Feature} & \textbf{Type} & $\rho$ & $\tilde{I}$ & $\pi$ & $\mathcal{L}$ \\
 \midrule
 proxy (corr\,=\,1.0)          & leaky  & 1.00 & 1.00 & 1.00 & \textbf{1.000} \\
 noisy proxy ($r{\approx}0.97$) & leaky  & 0.97 & 0.93 & 0.91 & \textbf{0.940} \\
@@ -1527,9 +1544,10 @@ operating thresholds.
 \caption{Semantic leakage module evaluation on 30-feature benchmark.}
 \label{tab:semantic_eval}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabular}{lrrrrrr}
 \toprule
-\textbf{Threshold} & \textbf{P} & \textbf{R} & \textbf{F\textsubscript{1}} & \textbf{TP} & \textbf{FP} & \textbf{FN} \\
+\tblhead \textbf{Threshold} & \textbf{P} & \textbf{R} & \textbf{F\textsubscript{1}} & \textbf{TP} & \textbf{FP} & \textbf{FN} \\
 \midrule
 \texttt{high}   & 1.000 & 1.000 & 1.000 & 13 & 0 & 0 \\
 \texttt{medium} & 1.000 & 0.929 & 0.963 & 13 & 0 & 1 \\
@@ -1558,9 +1576,10 @@ Table~\ref{tab:casestudies} summarises the framework's findings on three real-wo
 \centering
 \caption{Real-world case study summary (22 checks; impact analysis excluded).}
 \label{tab:casestudies}
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{lrrlX}
 \toprule
-\textbf{Dataset} & \textbf{Rows} & \textbf{Score} & \textbf{Grade} & \textbf{Primary findings} \\
+\tblhead \textbf{Dataset} & \textbf{Rows} & \textbf{Score} & \textbf{Grade} & \textbf{Primary findings} \\
 \midrule
 Titanic        & 1,309  & 80.6 & B & Target leakage (\texttt{boat}, $r{=}0.97$); 4 cols $>$5\% missing; 99 outliers \\
 Adult Census   & 48,842 & 92.4 & A & 2 cols with missing values; 6,854 outliers (\texttt{capital-gain}); 52 duplicates \\
@@ -1638,9 +1657,10 @@ via manual rule authoring in Great Expectations).
 \caption{Leakage detection: \cmark\,=\,detected, \xmark\,=\,missed.}
 \label{tab:detection}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Scenario} & \textbf{ml-fw} & \textbf{ydata} & \textbf{DC} & \textbf{GE} \\
+\tblhead \textbf{Scenario} & \textbf{ml-fw} & \textbf{ydata} & \textbf{DC} & \textbf{GE} \\
 \midrule
 Perfect proxy ($r{=}1.0$)    & \cmark & \xmark & \xmark & \xmark \\
 Noisy proxy ($r{\approx}0.97$) & \cmark & \xmark & \xmark & \xmark \\
@@ -1665,9 +1685,10 @@ and a plugin API for custom checks.
 \caption{Output and configuration flexibility comparison.}
 \label{tab:flexibility}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Capability} & \textbf{ml-fw} & \textbf{ydata} & \textbf{DC} & \textbf{GE} \\
+\tblhead \textbf{Capability} & \textbf{ml-fw} & \textbf{ydata} & \textbf{DC} & \textbf{GE} \\
 \midrule
 Numerical readiness score   & \cmark & \xmark & \xmark & \xmark \\
 Letter grade (A--F)         & \cmark & \xmark & \xmark & \xmark \\
@@ -1703,9 +1724,10 @@ the unified risk score.  This overhead is justified by the richer analytical out
 \caption{Runtime (seconds). ``---'' = compatibility error with NumPy 2.0.}
 \label{tab:runtime}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabular}{lrrrr}
 \toprule
-\textbf{Dataset} & \textbf{ml-fw} & \textbf{ydata} & \textbf{DC} & \textbf{GE} \\
+\tblhead \textbf{Dataset} & \textbf{ml-fw} & \textbf{ydata} & \textbf{DC} & \textbf{GE} \\
 \midrule
 500 rows   & 2.88 & 0.15 & --- & 0.01 \\
 1{,}000 rows & 2.23 & 0.15 & --- & 0.01 \\
@@ -1778,16 +1800,21 @@ This thesis set out to design, implement, and evaluate an automated framework fo
 quality assessment and data leakage detection in machine learning workflows
 (Chapter~\ref{chap:intro}).  Table~\ref{tab:contributions} summarises the eight main
 technical contributions delivered across the seventeen development phases of
-Section~\ref{sec:phases}.
+Section~\ref{sec:phases}.  The remainder of this chapter discusses each of these
+contributions in turn, verifies that the seven objectives of Section~\ref{sec:objectives}
+were met, summarises the empirical evaluation across the twelve-dataset suite, reflects on
+the iterative development process that produced these results, and closes with final
+remarks on the project as a whole.
 
 \begin{table}[!ht]
 \centering
 \caption{Summary of technical contributions.}
 \label{tab:contributions}
 \scriptsize
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{lX}
 \toprule
-\textbf{Contribution} & \textbf{Description} \\
+\tblhead \textbf{Contribution} & \textbf{Description} \\
 \midrule
 22-check pipeline & End-to-end pipeline covering quality, leakage, features, sufficiency, drift, and impact in a single configurable system \\
 Unified leakage risk score & $\mathcal{L}(f) = 0.35\rho + 0.35\tilde{I} + 0.30\pi$ combining three complementary statistical signals \\
@@ -1801,32 +1828,230 @@ Benchmark & Comparison against 3 tools on 29 checks and 4 leakage scenarios; 325
 \end{tabularx}
 \end{table}
 
-These eight contributions, taken together, satisfy the seven objectives set out in
-Chapter~\ref{chap:intro}.  In particular, the unified leakage risk score
-$\mathcal{L}(f)\in[0,1]$ (Equation~\eqref{eq:lrs}) addresses the long-standing limitation of
-single-signal heuristics by combining correlation, mutual information, and performance
-inflation into one interpretable number; the GPT-4o-mini semantic module extends detection
-to feature-naming patterns that no statistical signal can see; and the impact-analysis
-module turns an abstract leakage flag into a concrete, measurable consequence---removing the
-leaky feature from \texttt{leaky\_dataset} reduces accuracy by $\Delta{=}{-}0.048$, direct
-evidence that the original model was exploiting leaked information rather than learning a
-generalisable pattern.
+\subsection{Summary of Contributions}
+
+Each row of Table~\ref{tab:contributions} corresponds to a self-contained module, with its
+own implementation, dedicated unit tests, and supporting section in this thesis.  They are
+discussed below in the order in which they appear in the table, together with the evidence
+that each one works as intended.
+
+\textbf{A 22-check automated pipeline.}  The core of ml-framework is a single configurable
+pipeline (Section~\ref{sec:architecture}) that runs 22 checks across six analytical
+dimensions---quality, leakage, feature relevance, statistical sufficiency, drift, and
+performance impact (Table~\ref{tab:all_checks})---on a single \texttt{pandas}
+\texttt{DataFrame}.  Rather than requiring practitioners to assemble ad-hoc scripts or
+stitch together several point tools, one \texttt{DatasetChecker.run()} call
+(Section~\ref{sec:implementation}) executes the entire pipeline and returns a structured
+\texttt{FrameworkReport} object that feeds directly into the readiness score, the
+recommendations engine, and the HTML report generator.  This single-pipeline design is what
+makes the framework usable from three different interfaces (CLI, SDK, and Streamlit) without
+duplicating logic.
+
+\textbf{A novel unified leakage risk score.}  Equation~\eqref{eq:lrs} and
+Algorithm~\ref{alg:lrs} (Section~\ref{sec:lrs}) combine Pearson/Cram\'er correlation,
+normalised mutual information, and cross-validated performance inflation into a single
+per-feature score $\mathcal{L}(f)\in[0,1]$.  This directly answers the first round of
+feedback from Prof.\ Yong, who observed that single-signal leakage heuristics are brittle and
+easy to fool.  The validation in Table~\ref{tab:lrs} (Section~\ref{sec:lrsvalidation}) shows
+a clear separation between defect classes: every intentionally leaky feature scores
+$\mathcal{L}(f)\ge0.83$, while clean features remain below $0.30$, confirming that the
+default flagging thresholds (warning at $0.7$, error at $0.9$) leave a comfortable margin and
+are unlikely to misclassify borderline features in practice.
+
+\textbf{An optional GPT-4o-mini semantic leakage module.}  \texttt{src/semantic\_leakage.py}
+(Section~\ref{sec:methodology}) sends feature names, sample values, and a short dataset
+description to GPT-4o-mini via Azure OpenAI and returns, for each feature, a risk level and a
+leakage type (temporal, proxy, post-hoc, or indirect).  On the manually labelled 30-feature
+benchmark of Section~\ref{sec:semantic_eval}, the module attains
+$P{=}1.000$, $R{=}0.929$, $F_1{=}0.963$ at its default \texttt{medium} threshold
+(Table~\ref{tab:semantic_eval}).  Crucially, this module catches a class of leakage---revealed
+purely by how a feature is \emph{named}, such as \texttt{discharge\_disposition} or
+\texttt{future\_balance}---that none of the three statistical signals in $\mathcal{L}(f)$ can
+detect, making it a genuinely complementary rather than redundant addition to the pipeline.
+
+\textbf{Fully configurable, reproducible scoring.}  Every weight, penalty, and threshold used
+by the framework---the leakage-risk-score weights $(0.35, 0.35, 0.30)$ and its flagging
+thresholds $(0.7, 0.9)$, the readiness-score dimension weights $(0.25, 0.35, 0.25, 0.15)$, the
+per-issue error/warning penalties, and the semantic-risk threshold---is exposed in
+\texttt{config.yaml} and documented with an explicit weight-rationale paragraph
+(Section~\ref{sec:scoring}).  This means that every score reported in
+Tables~\ref{tab:readiness}--\ref{tab:casestudies} is fully reproducible from the repository
+configuration, and that a practitioner who disagrees with a particular weighting (for
+example, an organisation that considers leakage more critical than sufficiency) can adjust it
+without touching a single line of source code, a flexibility discussed further in
+Section~\ref{sec:discussionresults}.
+
+\textbf{An extensible plugin architecture.}  The \texttt{@register\_check} decorator
+(Section~\ref{sec:implementation}) lets users register additional, domain-specific checks---for
+example, fairness metrics over protected attributes, or industry-specific regulatory
+rules---without modifying the framework's core source code.  Appendix~\ref{app:ethics}
+identifies this plugin mechanism as a key lever for the project's social impact: it lowers
+the barrier for the wider community to extend the check catalogue beyond the 22 checks
+evaluated in this thesis, including checks that the original author may not have anticipated.
+
+\textbf{Three complementary user interfaces.}  The same underlying pipeline is exposed
+through a command-line tool, a Python SDK (the \texttt{DatasetChecker} class), and a
+seven-tab Streamlit dashboard (Section~\ref{sec:architecture}).  This means the framework can
+be dropped into an automated CI/CD data-validation step, called programmatically from a
+notebook or training script, or operated by a non-programmatic stakeholder---such as a data
+owner reviewing a readiness report before a dataset is approved for use---all from a single
+underlying implementation, with no risk of the three interfaces drifting out of sync.
+
+\textbf{Impact analysis: leakage made measurable.}  Beyond simply flagging a feature as
+risky, the impact-analysis module (Section~\ref{sec:impactresults}, Table~\ref{tab:impact})
+trains a model with and without the flagged feature and reports the resulting
+cross-validated accuracy delta.  On \texttt{leaky\_dataset} this delta is
+$\Delta{=}{-}0.048$ (accuracy drops from $1.000$ to $0.952$ once the leaky feature is
+removed), turning an abstract $\mathcal{L}(f)$ score into a concrete, decision-relevant
+statement: \emph{this specific feature is responsible for a 4.8 percentage-point
+overestimate of model performance}.  On \texttt{dirty\_dataset}, by contrast, the delta is
+\emph{positive} ($\Delta{=}{+}0.022$), confirming that removing genuine quality defects
+improves rather than harms predictive performance---an important asymmetry that distinguishes
+leakage remediation (which should reduce reported performance to a more honest level) from
+quality remediation (which should improve it).
+
+\textbf{A quantitative benchmark and a 325-test verification suite.}  Section~\ref{sec:benchmark}
+compares ml-framework against Great Expectations, ydata-profiling, and Deepchecks on 29
+ML-relevant checks and four constructed leakage scenarios
+(Table~\ref{tab:detection}--Table~\ref{tab:flexibility}): ml-framework covers 29/29 checks
+and detects 4/4 leakage scenarios, versus at most 11/29 checks and 1/4 scenarios for the best
+alternative.  Internally, every one of these claims---and every score, table, and figure in
+this thesis---is protected by the 325-test suite summarised in Table~\ref{tab:tests}
+(Section~\ref{sec:implementation}), developed test-first across all seventeen phases of
+Section~\ref{sec:phases} under the discipline that a broken test is fixed before any new work
+proceeds.
+
+\subsection{Achievement of the Project Objectives}
+
+Section~\ref{sec:objectives} stated seven specific objectives at the outset of this project.
+Table~\ref{tab:objectives} maps each objective to the section, equation, algorithm, or table
+in which it was realised and empirically validated.
+
+\begin{table}[!ht]
+\centering
+\caption{Mapping of the seven project objectives to their realisation in this thesis.}
+\label{tab:objectives}
+\scriptsize
+\rowcolors{2}{white}{tblAltRow}
+\begin{tabularx}{\textwidth}{cXX}
+\toprule
+\tblhead \textbf{\#} & \textbf{Objective (Section~\ref{sec:objectives})} & \textbf{Realised in} \\
+\midrule
+1 & Build a 22-check pipeline covering quality, leakage, feature relevance, sufficiency, drift, and impact & Section~\ref{sec:architecture}, Table~\ref{tab:all_checks} \\
+2 & Design a unified leakage risk score combining correlation, mutual information, and performance inflation & Section~\ref{sec:lrs}, Eq.~\eqref{eq:lrs}, Alg.~\ref{alg:lrs}, Table~\ref{tab:lrs} \\
+3 & Add an LLM-based semantic module to detect naming-pattern leakage & Section~\ref{sec:semantic_eval}, Table~\ref{tab:semantic_eval} ($F_1{=}0.963$) \\
+4 & Benchmark the framework quantitatively against existing tools & Section~\ref{sec:benchmark}, Tables~\ref{tab:detection}--\ref{tab:runtime} \\
+5 & Provide CLI, SDK, and dashboard interfaces for different users & Section~\ref{sec:architecture} \\
+6 & Make all scoring parameters configurable and reproducible & Section~\ref{sec:scoring}, \texttt{config.yaml} \\
+7 & Evaluate the framework on a broad suite of synthetic and real-world datasets & Section~\ref{sec:datasets}, Tables~\ref{tab:datasets},~\ref{tab:readiness},~\ref{tab:uci} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+All seven objectives were achieved in full, and none required a reduction in scope during
+development.  Objectives~1, 2, and 6 form the statistical core of the framework and were
+completed first (Phases~1--11, Section~\ref{sec:phases}); objective~5 followed naturally once
+the core pipeline stabilised (Phase~12--13); and objectives~3, 4, and~7 correspond directly to
+the second round of feedback from Prof.\ Yong and were the focus of the final two phases
+(Phases~16--17).  The fact that every objective maps to at least one quantitative table or
+equation---rather than to a qualitative or anecdotal claim---is itself evidence that the
+project was scoped at a level where success could be measured rather than merely asserted.
+
+\subsection{Evaluation Summary}
 
 The framework has been evaluated on \textbf{twelve datasets}---six synthetic and six
 real-world (Table~\ref{tab:datasets})---demonstrating calibrated readiness scores across the
-full range of defect profiles: from grade C (62/100, Heart Disease; 65/100,
-\texttt{dirty\_dataset}) through grade B (72--82/100, \texttt{leaky\_dataset}, Titanic, Pima
-Diabetes, Wine Quality) to grade A (92.4--97.5/100, Adult Census, German Credit; 95/100,
-\texttt{clean\_dataset}).  Real-world case studies on Titanic, Adult Census, and German
-Credit (Section~\ref{sec:casestudies}) confirm that the framework correctly identifies
-domain-specific problems, including the well-known \texttt{boat} leakage in Titanic and
-near-irrelevant features in German Credit.  The quantitative benchmark of
-Section~\ref{sec:benchmark} shows that ml-framework covers 29/29 ML-relevant checks and
-detects 4/4 constructed leakage scenarios, while the best competing tool (Deepchecks)
-covers 11/29 checks and detects at most 1/4 scenarios.
+full range of defect profiles: from grade C ($62/100$, Heart Disease; $65/100$,
+\texttt{dirty\_dataset}) through grade B ($72$--$82/100$, \texttt{leaky\_dataset}, Titanic,
+Pima Diabetes, Wine Quality) to grade A ($92.4$--$97.5/100$, Adult Census, German Credit;
+$95/100$, \texttt{clean\_dataset}).
 
-All code, datasets, benchmarks, and the Streamlit demo are publicly available at
-\url{https://github.com/jaimecano12/ml-framework}.
+These two groups of datasets play deliberately different roles.  The six synthetic datasets
+(Section~\ref{sec:datasets}) were constructed by \texttt{scripts/generate\_data.py} so that
+each one isolates a single, known defect family by design: \texttt{clean\_dataset} provides a
+zero-false-positive baseline (21/21 checks passed, Table~\ref{tab:readiness});
+\texttt{dirty\_dataset} and \texttt{leaky\_dataset} inject quality and leakage defects
+respectively; and \texttt{proxy\_leakage}, \texttt{temporal\_leakage\_ext}, and
+\texttt{multitype\_leakage} provide the graded and multi-type leakage scenarios used to
+calibrate the unified leakage risk score (Table~\ref{tab:lrs}).  Because the ground truth for
+these datasets is known by construction, they answer the question \emph{``does each check
+detect the defect it was designed to detect, and only that defect?''} with no ambiguity.
+
+The six real-world UCI datasets then answer a different, harder question: \emph{``do these
+same checks generalise to data the framework's checks were never tuned for?''}  The three
+case studies of Section~\ref{sec:casestudies} (Table~\ref{tab:casestudies}) confirm that they
+do.  On Titanic, the framework independently rediscovers the textbook \texttt{boat}
+post-hoc-leakage problem ($r{=}0.97$, $\mathcal{L}{=}0.94$) without being told to look for it.
+On Adult Census Income---the largest dataset in the suite at 48,842 rows---it surfaces a
+severely right-skewed \texttt{capital-gain} feature ($\text{skew}\approx11.9$) and 52
+duplicate rows among nearly 49,000, issues that are easy to overlook manually at that scale.
+On German Credit, the highest-scoring real-world dataset ($97.5/100$, grade A), the framework
+still identifies three near-zero mutual-information features, illustrating that even a
+well-curated dataset benefits from automated feature-relevance screening in a domain---credit
+scoring---where regulatory explainability makes every retained feature a liability if it
+cannot be justified~\cite{siddiqi2006}.
+
+Finally, the quantitative benchmark of Section~\ref{sec:benchmark} situates these results
+relative to existing tools: ml-framework covers 29/29 ML-relevant checks and detects 4/4
+constructed leakage scenarios (Table~\ref{tab:detection}), while the best competing tool
+(Deepchecks) covers 11/29 checks and detects at most 1/4 scenarios.  Taken together, the
+twelve-dataset evaluation, the three case studies, and the benchmark provide three
+independent lines of evidence---construct validity, external validity, and comparative
+validity---that the framework behaves as intended.
+
+\subsection{Reflections on the Development Process}
+
+The seventeen-phase roadmap summarised in Table~\ref{tab:phases} (Section~\ref{sec:phases})
+was not fixed in advance; it emerged iteratively, with each phase building on a working,
+fully tested predecessor.  Phases~1--11 established the statistical core of the
+framework---configuration, the six quality checks, the original four leakage checks, impact
+analysis, reporting, recommendations, feature analysis, and the readiness score---while
+Phases~12--15 turned that core into a usable product by adding the Streamlit dashboard, the
+Python SDK, drift detection, and the plugin system.  Throughout, the project followed the
+test-first discipline recorded in Table~\ref{tab:tests}: by the end of Phase~15 the suite
+already contained 301 passing tests, and \emph{a broken test was always fixed before any new
+feature was started}, a rule that proved its worth repeatedly when later phases refactored
+shared dataclasses such as \texttt{CheckResult} and \texttt{ReadinessScore}.
+
+The two rounds of feedback from Prof.\ Yong were a second major driver of the project's
+shape.  The first round shaped the original 15-phase plan (the core pipeline, scoring system,
+SDK, and plugin API).  The second round---requesting a unified leakage risk score, a broader
+and more challenging dataset suite, a quantitative benchmark against existing tools, and an
+LLM-based semantic analysis module---was incorporated entirely within Phases~16--17, raising
+the test count from 301 to 325 and expanding the dataset suite from five to twelve.  Rather
+than being treated as an addendum, this feedback was woven directly into the paper structure
+(Section~\ref{sec:phases}), so that the unified score, the semantic module, the extended
+dataset suite, and the benchmark each occupy their own clearly labelled section
+(Sections~\ref{sec:lrs}, \ref{sec:semantic_eval}, \ref{sec:datasets}, and~\ref{sec:benchmark}
+respectively) rather than being scattered as minor revisions.  This iterative,
+feedback-driven process---build, test, evaluate, incorporate feedback, repeat---is, in the
+author's view, as much a contribution of this thesis as any individual module: it produced a
+framework whose every claim is backed by a passing test, a generated table, or a reproducible
+script in \texttt{scripts/}.
+
+\subsection{Final Remarks}
+
+Taken as a whole, this thesis demonstrates that the problems of poor dataset quality and data
+leakage---long recognised as major causes of ML projects that perform well offline but fail
+in production~\cite{sculley2015,breck2019,kaufman2012leakage}---can be addressed systematically,
+automatically, and \emph{before} a single model is trained.  By combining classical
+statistical tests, a novel unified leakage risk score, an LLM-based semantic layer, and a
+configurable readiness score into one open pipeline with three interfaces, ml-framework moves
+data validation from an ad-hoc, expert-dependent activity to a reproducible step that can run
+in seconds (Table~\ref{tab:runtime}) on datasets ranging from a few hundred rows to tens of
+thousands.  The 29/29 check coverage and 4/4 leakage-detection rate of
+Section~\ref{sec:benchmark}, the $F_1{=}0.963$ semantic-detection score of
+Section~\ref{sec:semantic_eval}, and the measurable $\Delta{=}{-}0.048$ accuracy correction of
+Section~\ref{sec:impactresults} are not merely incremental improvements over existing
+profiling tools: together they show that a single, well-designed and well-tested pipeline can
+catch the kinds of problems that, left undetected, turn into the production failures and
+fairness incidents documented in Appendix~\ref{app:ethics}.
+
+All code, datasets, configuration files, benchmark scripts, the demo notebook, the Streamlit
+dashboard, and this thesis itself are publicly available at
+\url{https://github.com/jaimecano12/ml-framework}, so that the results reported here can be
+independently reproduced, extended through the plugin API, and---following the future
+research lines outlined in the next section---built upon by others.
 
 \section{Future Research Lines}
 
@@ -2118,9 +2343,10 @@ evaluated at a junior-to-mid-level software engineering rate of \texteuro{}35/ho
 \centering
 \caption{Estimated development budget.}
 \label{tab:budget}
+\rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{lrrrX}
 \toprule
-\textbf{Phase / Activity} & \textbf{Hours} & \textbf{Rate (\texteuro{}/h)} & \textbf{Cost (\texteuro{})} & \textbf{Description} \\
+\tblhead \textbf{Phase / Activity} & \textbf{Hours} & \textbf{Rate (\texteuro{}/h)} & \textbf{Cost (\texteuro{})} & \textbf{Description} \\
 \midrule
 Scaffold \& utilities (1--2)      & 20  & 35 & 700   & Project structure, config, dataclasses \\
 Quality checks (3)                & 15  & 35 & 525   & 6 quality checks + 44 tests \\

@@ -47,12 +47,35 @@
 \setlength{\parindent}{0pt}
 \renewcommand{\arraystretch}{1.15}
 
-% ── Chapter / Section formatting matching tfm.docx ───────────────────────────
-% Ttulo1: 18pt bold black (chapter headings)
-\titleformat{\chapter}[display]
-  {\normalfont\fontsize{18}{22}\bfseries}{\chaptername\ \thechapter}{10pt}{\fontsize{18}{22}}
-  [\vspace{6pt}{\color{upmBlue}\titlerule[1.4pt]}]
-\titlespacing*{\chapter}{0pt}{24pt}{16pt}
+% ── Chapter / Section formatting matching tfm-upm.pdf reference ──────────────
+% Chapter headings: solid orange bar background, 16pt bold black text
+\titleformat{\chapter}[block]
+  {\normalfont\fontsize{16}{19}\bfseries}
+  {}
+  {0pt}
+  {\noindent\colorbox{upmOrange}{\rule{0pt}{0.95cm}\rule{\dimexpr\textwidth-2\fboxsep\relax}{0pt}}\\[-0.75cm]\hspace{6pt}}
+\titlespacing*{\chapter}{0pt}{6pt}{14pt}
+
+% \upmchapter{Title}: numbered chapter heading rendered via \chapter* so the
+% "N. Title" text sits inside the orange bar (titlesec cannot place \thechapter
+% on the bar correctly when using the normal \chapter label mechanism).
+\newcommand{\upmchapter}[1]{%
+  \refstepcounter{chapter}%
+  \phantomsection
+  \chapter*{\thechapter.\ #1}%
+  \addcontentsline{toc}{chapter}{\protect\numberline{\thechapter}#1}%
+  \markboth{#1}{}%
+}
+
+% tocloft re-defines \listoffigures/\listoftables at \begin{document} with its
+% own (un-barred) title; route them back through \chapter* so they get the bar.
+\makeatletter
+\AtBeginDocument{%
+  \renewcommand{\listoffigures}{\chapter*{\listfigurename}\@starttoc{lof}}%
+  \renewcommand{\listoftables}{\chapter*{\listtablename}\@starttoc{lot}}%
+}
+\makeatother
+
 % Ttulo2: 14pt bold orange, no numbering prefix indent (section headings)
 \titleformat{\section}
   {\normalfont\fontsize{14}{17}\bfseries\color{upmOrange}}{\thesection}{0.7em}{}
@@ -199,7 +222,7 @@ Madrid, a \quad\quad de \quad\quad\quad\quad\quad\quad\quad\quad de 20\ldots
 \clearpage
 
 % ── Abstract (Spanish) ───────────────────────────────────────────────────────
-\chapter*{\fontsize{16}{19}\selectfont RESUMEN}
+\chapter*{RESUMEN}
 \addcontentsline{toc}{chapter}{Resumen}
 
 El aprendizaje automático se ha convertido en una tecnolog\'ia central en numerosos dominios
@@ -248,7 +271,7 @@ reproducibilidad y el an\'alisis de sensibilidad.
 en datos, puntuaci\'on de disponibilidad, informaci\'on mutua, modelos de lenguaje, GPT-4o-mini.
 
 % ── Abstract (English) ───────────────────────────────────────────────────────
-\chapter*{\fontsize{16}{19}\selectfont SUMMARY}
+\chapter*{SUMMARY}
 \addcontentsline{toc}{chapter}{Summary}
 
 Machine learning has become a core technology across high-impact domains ranging from
@@ -302,7 +325,7 @@ information, large language models, GPT-4o-mini.
 \clearpage
 
 % ════════════════════════════════════════════════════════════════════════════
-\chapter{Introduction and Objectives}
+\upmchapter{Introduction and Objectives}
 \label{chap:intro}
 
 \section{Introduction}
@@ -550,7 +573,7 @@ different defect profiles.
 \end{enumerate}
 
 % ════════════════════════════════════════════════════════════════════════════
-\chapter{Development}
+\upmchapter{Development}
 \label{ch:development}
 
 This chapter describes the full development of \textbf{ml-framework}: the state of the
@@ -1322,7 +1345,7 @@ Section~\ref{sec:casestudies}.
 \normalsize
 
 % ════════════════════════════════════════════════════════════════════════════
-\chapter{Results}
+\upmchapter{Results}
 \label{chap:results}
 
 This chapter presents the experimental evaluation of ml-framework.
@@ -1791,7 +1814,7 @@ multi-signal pipeline detects a substantially broader range of dataset defects t
 existing tools while remaining transparent and reproducible.
 
 % ════════════════════════════════════════════════════════════════════════════
-\chapter{Conclusions and Future Research}
+\upmchapter{Conclusions and Future Research}
 \label{chap:conclusions}
 
 \section{Conclusions}
@@ -2191,7 +2214,7 @@ Deepchecks team,
 % ════════════════════════════════════════════════════════════════════════════
 \appendix
 
-\chapter{Ethical, Economic, Social, and Environmental Aspects}
+\upmchapter{Ethical, Economic, Social, and Environmental Aspects}
 \label{app:ethics}
 
 \section{Introduction}
@@ -2330,7 +2353,7 @@ dimensions considered in this appendix and is the central practical motivation f
 work presented in Chapters~\ref{ch:development}--\ref{chap:conclusions}.
 
 % ════════════════════════════════════════════════════════════════════════════
-\chapter{Economic Budget}
+\upmchapter{Economic Budget}
 \label{app:budget}
 
 \section{Development Cost Estimation}

@@ -15,6 +15,7 @@
 \usepackage{algpseudocode}
 \usepackage{listings}
 \usepackage[table]{xcolor}
+\usepackage{eso-pic}
 \usepackage[hidelinks]{hyperref}
 \usepackage{url}
 \usepackage{pgfplots}
@@ -67,6 +68,12 @@
   \markboth{#1}{}%
 }
 
+% \upmbar{text}: full-width orange bar used for sub-headings on the Tribunal
+% page (matches tfm-upm.pdf reference, p.2). Height adapts to 1 or 2 lines.
+\newcommand{\upmbar}[1]{%
+  \par\noindent\colorbox{upmOrange}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\bfseries\strut #1\strut}}\par
+}
+
 % tocloft re-defines \listoffigures/\listoftables at \begin{document} with its
 % own (un-barred) title; route them back through \chapter* so they get the bar.
 \makeatletter
@@ -92,11 +99,11 @@
 % ── Headers & footers ────────────────────────────────────────────────────────
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small\textit{ML Framework for Dataset Quality Assessment}}
-\fancyhead[R]{\small\textit{Jaime Cano Mora\~{n}o}}
-\fancyfoot[C]{\small\thepage}
+\fancyhead[L]{\includegraphics[height=9pt]{figures/upm_logo.png}}
+\fancyhead[R]{\thepage}
+\fancyfoot{}
 \renewcommand{\headrulewidth}{0.4pt}
-\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[L]{\includegraphics[height=9pt]{figures/upm_logo.png}}\fancyhead[R]{\thepage}\fancyfoot{}\renewcommand{\headrulewidth}{0.4pt}}
 
 % ── Caption style ────────────────────────────────────────────────────────────
 \captionsetup{font=small, labelfont=bf, labelsep=period,
@@ -132,67 +139,43 @@
 % ════════════════════════════════════════════════════════════════════════════
 \begin{document}
 
-% ── Cover page 1 — UPM (matches tfm.docx first page) ─────────────────────────
+% ── Cover page 1 — UPM orange cover (tfm-upm.pdf reference, p.1) ─────────────
+\AddToShipoutPictureBG*{%
+  \AtPageLowerLeft{\includegraphics[width=\paperwidth,height=\paperheight]{figures/upm_cover_bg.png}}%
+}
 \begin{titlepage}
 \thispagestyle{empty}
 \centering
-\vspace*{2cm}
-{\fontsize{14}{17}\bfseries
-M\'ASTER UNIVERSITARIO EN INGENIER\'IA DE\\[0.4em]
-TELECOMUNICACI\'ON}
+\color{black}\sffamily\bfseries
+\vspace*{6.6cm}
+{\fontsize{14}{17}\selectfont
+M\'ASTER UNIVERSITARIO EN INGENIER\'IA DE\\[0.2em]
+TELECOMUNICACI\'ON\\[0.6em]
+TRABAJO FIN DE M\'ASTER\par}
 
-\vspace{1.5cm}
-{\fontsize{16}{19}\bfseries TRABAJO FIN DE M\'ASTER}
+\vspace{1.6cm}
+{\fontsize{14}{17}\selectfont\MakeUppercase{%
+An Automated Framework for\\[0.2em]
+Dataset Quality Assessment and\\[0.2em]
+Data Leakage Detection in Machine\\[0.2em]
+Learning}\par}
 
-\vspace{2cm}
-{\fontsize{14}{17}\bfseries\MakeUppercase{%
-An Automated Framework for Dataset Quality Assessment\\[0.3em]
-and Data Leakage Detection in Machine Learning}}
+\vspace{4.2cm}
+{\fontsize{13}{16}\selectfont JAIME CANO MORA\~{N}O\par}
 
-\vspace{2.5cm}
-{\fontsize{13}{16}\bfseries JAIME CANO MORA\~{N}O}
-
-\vspace{1cm}
-{\normalsize 2025--26}
-
-\vfill
+\vspace{0.4cm}
+{\fontsize{13}{16}\selectfont 2025--26\par}
 \end{titlepage}
+\AddToShipoutPictureBG*{}
 
-% ── Cover page 2 — UPM with institution (matches tfm.docx second page) ───────
+% ── Cover page 2 — Tribunal page (tfm-upm.pdf reference, p.2) ────────────────
 \thispagestyle{empty}
-\begin{center}
-\vspace*{1cm}
-{\fontsize{14}{17}\bfseries
-UNIVERSIDAD POLIT\'ECNICA DE MADRID\\[0.3em]
-ESCUELA T\'ECNICA SUPERIOR\\[0.3em]
-DE INGENIEROS DE TELECOMUNICACI\'ON}
+\upmbar{M\'ASTER UNIVERSITARIO EN INGENIER\'IA DE TELECOMUNICACI\'ON}
 
-\vspace{1.2cm}
-{\fontsize{14}{17}\bfseries M\'ASTER UNIVERSITARIO EN INGENIER\'IA DE TELECOMUNICACI\'ON}
+\vspace{0.5cm}
+\upmbar{TRABAJO FIN DE M\'ASTER}
 
 \vspace{0.8cm}
-{\fontsize{16}{19}\bfseries TRABAJO FIN DE M\'ASTER}
-
-\vspace{1.5cm}
-{\fontsize{13}{16}\bfseries\MakeUppercase{%
-An Automated Framework for Dataset Quality Assessment\\[0.3em]
-and Data Leakage Detection in Machine Learning}}
-
-\vspace{1.5cm}
-{\fontsize{13}{16}\bfseries JAIME CANO MORA\~{N}O}
-
-\vspace{0.8cm}
-{\normalsize 2025--26}
-\end{center}
-\clearpage
-
-% ── Inner title page — Datos del TFM ─────────────────────────────────────────
-\thispagestyle{empty}
-\begin{center}
-\vspace*{1.5cm}
-{\fontsize{16}{19}\bfseries TRABAJO FIN DE M\'ASTER}
-
-\vspace{1.2cm}
 \begin{tabular}{@{}p{3cm}p{10cm}@{}}
 \textbf{T\'itulo:}       & An automated framework for dataset quality assessment
                            and data leakage detection in machine learning\\[0.8em]
@@ -202,22 +185,54 @@ and Data Leakage Detection in Machine Learning}}
 \textbf{Departamento:}   & Departamento de Ingenier\'ia de Sistemas Telem\'aticos\\
 \end{tabular}
 
-\vspace{1.8cm}
-{\fontsize{14}{17}\bfseries Miembros del Tribunal}
+\vspace{1.2cm}
+\upmbar{MIEMBROS DEL TRIBUNAL}
 
 \vspace{0.8cm}
 \begin{tabular}{@{}p{3cm}p{10cm}@{}}
-Presidente: & D.\ \dotfill\\[0.5em]
-Vocal:      & D.\ \dotfill\\[0.5em]
-Secretario: & D.\ \dotfill\\[0.5em]
-Suplente:   & D.\ \dotfill\\
+\textbf{Presidente:} & D.\ \dotfill\\[1em]
+\textbf{Vocal:}      & D.\ \dotfill\\[1em]
+\textbf{Secretario:} & D.\ \dotfill\\[1em]
+\textbf{Suplente:}   & D.\ \dotfill\\
 \end{tabular}
 
-\vspace{1.2cm}
+\vspace{1.5cm}
 Los miembros del tribunal arriba nombrados acuerdan otorgar la calificaci\'on de: \dotfill
 
-\vspace{0.6cm}
-Madrid, a \quad\quad de \quad\quad\quad\quad\quad\quad\quad\quad de 20\ldots
+\vspace{1.2cm}
+\hfill Madrid, a \quad\quad de \quad\quad\quad\quad\quad\quad\quad\quad de 20\ldots
+\clearpage
+
+% ── Inner title page — white background with logo (tfm-upm.pdf reference, p.3) ──
+\thispagestyle{empty}
+\begin{center}
+\color{black}\sffamily\bfseries
+\vspace*{1cm}
+{\fontsize{14}{17}\selectfont
+UNIVERSIDAD POLIT\'ECNICA DE MADRID\\[0.5em]
+ESCUELA T\'ECNICA SUPERIOR\\[0.2em]
+DE INGENIEROS DE TELECOMUNICACI\'ON\par}
+
+\vspace{0.8cm}
+\includegraphics[width=7.8cm]{figures/upm_logo.png}
+
+\vspace{1cm}
+{\fontsize{14}{17}\selectfont
+M\'ASTER UNIVERSITARIO EN INGENIER\'IA DE TELECOMUNICACI\'ON\\[0.3em]
+TRABAJO FIN DE M\'ASTER\par}
+
+\vspace{1.5cm}
+{\fontsize{14}{17}\selectfont\MakeUppercase{%
+An Automated Framework for\\[0.2em]
+Dataset Quality Assessment and\\[0.2em]
+Data Leakage Detection in Machine\\[0.2em]
+Learning}\par}
+
+\vspace{2cm}
+{\fontsize{13}{16}\selectfont JAIME CANO MORA\~{N}O\par}
+
+\vspace{0.4cm}
+{\fontsize{13}{16}\selectfont 2025--26\par}
 \end{center}
 \clearpage
 

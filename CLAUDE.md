@@ -324,3 +324,28 @@ Todo incorporado en Phase 16 y documentado en el paper con secciones específica
 5. ✅ **Paper sin detalles de implementación** → `paper.tex` (12 páginas, research-oriented)
 
 **Respuesta enviada al profesor** indicando sección exacta del paper para cada punto (mail redactado 2026-06-05).
+
+---
+
+## Tesis TFM (tfm.tex)
+
+- **Archivo:** `tfm.tex` / `tfm.pdf` (50 páginas, formato UPM — Máster Universitario en Ingeniería de Telecomunicación, ETSIT).
+- **Compilar:** `tectonic tfm.tex`.
+- **Estilo visual:** barras naranjas (`upmOrange`) en títulos de capítulo vía macro `\upmchapter{}`, secciones en naranja con regla inferior, subsecciones en azul (`upmBlue`) — replica el estilo de `tfm-upm.pdf` (plantilla oficial UPM, **no tocar** este fichero de referencia, debe quedarse sin trackear en git).
+- **Estructura actual (6 capítulos + 2 anexos):**
+  1. Introduction and Objectives
+  2. Development (Estado del arte, Arquitectura, Metodología, Implementación, Resumen de fases)
+  3. Results
+  4. **Tools** (separado de Development: 4.1 Tools Used During Development, 4.2 Tools Used During Testing and Evaluation)
+  5. Conclusions and Future Research (incluye Bibliografía como capítulo automático vía `thebibliography`)
+  Anexo A: Ethical, Economic, Social, and Environmental Aspects
+  Anexo B: Economic Budget (B.1 Cost of Labor, B.2 Cost of Material Resources, B.3 Budget Summary)
+  - Front matter: Resumen, Summary, **Acronyms**, Contents, List of Figures, List of Tables.
+
+### Feedback del Ponente/tutor en España (2026-06-24)
+
+1. ✅ **Figura 1 del paper rota** (cajas/líneas superpuestas) → corregido en `paper.tex` (nodo `outbox` minimum height 0.6→0.9cm + espaciado fila 6 de 0.9→1.3cm) → commit `6eff47b`.
+2. ✅ **Estructura de capítulos "todo metido en el 2"** → resuelto usando como referencia el TFG previo del autor (`TFG-JaimeCanoMoraño_vf.pdf`, ETSIT-UPM 2023-24): se extrajo el capítulo 4 "Tools" replicando el patrón 4.1/4.2 del TFG, en vez de partir Development en "state of the art / architecture" (el propio TFG de referencia tampoco separa eso, mantiene un único capítulo "Desarrollo").
+3. ✅ **Presupuesto "un poco raro"** → Anexo B reescrito con estructura estándar de presupuesto de ingeniería española (mano de obra + recursos materiales = Costes Directos; +15% gastos generales; +6% beneficio industrial; +21% IVA) → Total: €16,436.92 (antes: lista plana de 19 filas a €35/h, €10,925 sin overhead/IVA).
+4. ✅ **Página de Acrónimos** añadida al front matter, replicando convención del TFG de referencia.
+- Commit de la restructuración de `tfm.tex`: `37e2ef3`.

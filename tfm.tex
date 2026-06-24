@@ -332,6 +332,31 @@ The framework is fully open-sourced at
 \textbf{Keywords:} data quality, data leakage, data-centric AI, readiness score, mutual
 information, large language models, GPT-4o-mini.
 
+% ── List of acronyms ──────────────────────────────────────────────────────────
+\chapter*{ACRONYMS}
+\addcontentsline{toc}{chapter}{Acronyms}
+
+\begin{tabular}{@{}p{2.2cm}p{12cm}@{}}
+\textbf{API}    & Application Programming Interface \\
+\textbf{CLI}    & Command-Line Interface \\
+\textbf{CV}     & Cross-Validation \\
+\textbf{GPT}    & Generative Pre-trained Transformer \\
+\textbf{HTML}   & HyperText Markup Language \\
+\textbf{IQR}    & Interquartile Range \\
+\textbf{JSON}   & JavaScript Object Notation \\
+\textbf{KS}     & Kolmogorov--Smirnov (statistical test) \\
+\textbf{LLM}    & Large Language Model \\
+\textbf{LRS}    & Leakage Risk Score \\
+\textbf{MI}     & Mutual Information \\
+\textbf{ML}     & Machine Learning \\
+\textbf{PSI}    & Population Stability Index \\
+\textbf{SDK}    & Software Development Kit \\
+\textbf{TFM}    & Trabajo Fin de M\'aster (Master's Thesis) \\
+\textbf{UCI}    & University of California, Irvine (Machine Learning Repository) \\
+\textbf{UPM}    & Universidad Polit\'ecnica de Madrid \\
+\textbf{YAML}   & YAML Ain't Markup Language \\
+\end{tabular}
+
 % ── Table of contents / figures / tables ─────────────────────────────────────
 \tableofcontents
 \listoffigures
@@ -1111,20 +1136,9 @@ manually labelled benchmark.
 \section{Implementation}
 \label{sec:implementation}
 
-\subsection{Technology Stack}
-
-The framework is implemented in Python 3.13 and requires the following core dependencies:
-\texttt{pandas} and \texttt{numpy} for data manipulation; \texttt{scipy} and
-\texttt{scikit-learn} \cite{pedregosa2011} for statistical tests, mutual information, and
-model evaluation; \texttt{xgboost} \cite{chen2016} for the XGBoost model in impact analysis;
-\texttt{pyyaml} for
-configuration loading; \texttt{jinja2} and \texttt{matplotlib} for report generation;
-\texttt{loguru} for structured logging; and \texttt{openai} for the optional LLM semantic
-module.  The Streamlit web interface uses \texttt{streamlit}.
-
-The testing infrastructure uses \texttt{pytest}, with fixtures that cover all modules.
-Benchmark comparisons require \texttt{ydata-profiling}, \texttt{deepchecks}, and
-\texttt{great-expectations}.  The LaTeX paper is compiled with \texttt{tectonic}.
+This section describes how the architecture of Section~\ref{sec:architecture} is realised
+in code.  The technology stack and testing tools are described separately in
+Chapter~\ref{chap:tools}.
 
 \subsection{Dataset Generation}
 
@@ -1829,6 +1843,42 @@ multi-signal pipeline detects a substantially broader range of dataset defects t
 existing tools while remaining transparent and reproducible.
 
 % ════════════════════════════════════════════════════════════════════════════
+\upmchapter{Tools}
+\label{chap:tools}
+
+This chapter lists the tools, libraries, and external services used while building and
+evaluating ml-framework, separating those used during development from those used during
+testing and evaluation.
+
+\section{Tools Used During Development}
+
+The framework is implemented in Python 3.13 and relies on the following core libraries:
+\texttt{pandas} and \texttt{numpy} for data manipulation; \texttt{scipy} and
+\texttt{scikit-learn} \cite{pedregosa2011} for statistical tests, mutual information, and
+model evaluation; \texttt{xgboost} \cite{chen2016} for the XGBoost model used in impact
+analysis; \texttt{pyyaml} for configuration loading; \texttt{jinja2} and \texttt{matplotlib}
+for report generation; \texttt{loguru} for structured logging; and \texttt{openai} for the
+optional LLM semantic module. The interactive web interface is built with
+\texttt{streamlit}.
+
+Development was carried out in Visual Studio Code with the Python and Jupyter extensions,
+using a \texttt{miniconda} environment (\texttt{ml-framework}) to isolate dependencies.
+Version control and collaboration with the project supervisor were managed through Git and
+GitHub (\url{https://github.com/jaimecano12/ml-framework}). \texttt{tectonic} was used to
+compile this document and the accompanying conference paper from LaTeX source.
+
+\section{Tools Used During Testing and Evaluation}
+
+All 325 automated tests are written and executed with \texttt{pytest}, as detailed in
+Section~\ref{sec:implementation}. Quantitative benchmarking against competing tools
+(Section~\ref{sec:benchmark}) required installing and configuring \texttt{ydata-profiling},
+\texttt{deepchecks}, and \texttt{great-expectations} so that each library's checks could be
+run on the same datasets under comparable conditions. The optional semantic leakage module
+was evaluated against \texttt{Azure OpenAI} (GPT-4o-mini), and the demonstration notebook
+(\texttt{notebooks/framework\_demo.ipynb}) was executed with \texttt{jupyter} under the
+\texttt{ml-framework} kernel to verify that all documented usage examples run end to end.
+
+% ════════════════════════════════════════════════════════════════════════════
 \upmchapter{Conclusions and Future Research}
 \label{chap:conclusions}
 
@@ -2371,15 +2421,18 @@ work presented in Chapters~\ref{ch:development}--\ref{chap:conclusions}.
 \upmchapter{Economic Budget}
 \label{app:budget}
 
-\section{Development Cost Estimation}
+This annex breaks down the project budget following the standard direct/indirect cost
+structure used in Spanish engineering project budgets: labor and material costs (direct
+costs), general overheads and industrial profit margin (indirect costs), and applicable VAT.
 
-Table~\ref{tab:budget} provides an estimated development budget for the ml-framework project.
-The estimates are based on the hours of engineering work required for each project phase,
+\section{Cost of Labor}
+
+Table~\ref{tab:budget} details the engineering hours invested in each project phase,
 evaluated at a junior-to-mid-level software engineering rate of \texteuro{}35/hour.
 
 \begin{table}[!ht]
 \centering
-\caption{Estimated development budget.}
+\caption{Cost of labor (mano de obra) by project phase.}
 \label{tab:budget}
 \rowcolors{2}{white}{tblAltRow}
 \begin{tabularx}{\textwidth}{lrrrX}
@@ -2406,15 +2459,71 @@ Demo notebook                     & 8   & 35 & 280   & 14-cell executed notebook
 Research paper (LaTeX)            & 25  & 35 & 875   & 13-page conference paper \\
 Thesis document (LaTeX)           & 30  & 35 & 1,050 & Full TFM write-up \\
 \midrule
-\textbf{Total engineering}        & \textbf{312} & & \textbf{10{,}920} & \\
-\midrule
-Cloud API costs (Azure OpenAI)    & ---  & --- & 5    & Semantic leakage testing (\textasciitilde50 calls) \\
-Software licences                 & ---  & --- & 0    & All tools open-source \\
-Hardware                          & ---  & --- & 0    & Standard laptop, no GPU required \\
-\midrule
-\textbf{Total project cost}       & & & \textbf{10{,}925} & \\
+\textbf{Total cost of labor}      & \textbf{312} & & \textbf{10{,}920} & \\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\section{Cost of Material Resources}
+
+Table~\ref{tab:budget-materials} lists the material resources used during the project.
+Equipment is amortized over its useful life, prorated to the months actually dedicated
+to the project; cloud API usage and software licences are charged as direct expenses.
+
+\begin{table}[!ht]
+\centering
+\caption{Cost of material resources (recursos materiales).}
+\label{tab:budget-materials}
+\rowcolors{2}{white}{tblAltRow}
+\small
+\begin{tabularx}{\textwidth}{Xrrrr}
+\toprule
+\tblhead \textbf{Item} & \textbf{Price (\texteuro{})} & \textbf{Life (yr)} & \textbf{Use (mo)} & \textbf{Cost (\texteuro{})} \\
+\midrule
+Development laptop          & 1{,}500 & 4   & 7   & 218.75 \\
+Cloud API (Azure OpenAI)     & ---     & --- & --- & 5.00 \\
+Software licences (open-source) & ---  & --- & --- & 0.00 \\
+\midrule
+\textbf{Total cost of material resources} & & & & \textbf{223.75} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Budget Summary}
+
+Table~\ref{tab:budget-summary} aggregates the direct costs from
+Tables~\ref{tab:budget}--\ref{tab:budget-materials} and applies the standard indirect-cost
+structure: general overheads (\textit{gastos generales}, 15\% of direct costs), industrial
+profit margin (\textit{beneficio industrial}, 6\% of direct plus indirect costs), and
+applicable VAT (21\%).
+
+\begin{table}[!ht]
+\centering
+\caption{Budget summary (presupuesto).}
+\label{tab:budget-summary}
+\rowcolors{2}{white}{tblAltRow}
+\begin{tabularx}{\textwidth}{Xr}
+\toprule
+\tblhead \textbf{Concept} & \textbf{Amount (\texteuro{})} \\
+\midrule
+Cost of labor                                   & 10{,}920.00 \\
+Cost of material resources                      & 223.75 \\
+\midrule
+\textbf{Direct costs (CD)}                      & \textbf{11{,}143.75} \\
+General overheads (15\% CD)                     & 1{,}671.56 \\
+\midrule
+\textbf{Direct + indirect costs (CD + CI)}      & \textbf{12{,}815.31} \\
+Industrial profit (6\% of CD + CI)               & 768.92 \\
+\midrule
+\textbf{Subtotal budget}                        & \textbf{13{,}584.23} \\
+VAT (21\%)                                      & 2{,}852.69 \\
+\midrule
+\textbf{TOTAL BUDGET}                           & \textbf{16{,}436.92} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The total estimated budget for the development of this project, including labor, material
+resources, overheads, industrial profit, and VAT, amounts to \textbf{\texteuro{}16,436.92}.
 
 \end{document}

@@ -750,12 +750,12 @@ into recommendations and a composite readiness score before generating reports.
 \node[io, right=0.6cm of cfg]  (data)  {Dataset CSV};
 \node[box, below=0.5cm of cfg, xshift=1.2cm] (load) {load\_dataset()};
 
-\node[box, below=0.7cm of load, xshift=-2.6cm] (qual)  {quality\\checks (6)};
-\node[box, below=0.7cm of load, xshift=-0.8cm] (leak)  {leakage\\checks (5)};
-\node[box, below=0.7cm of load, xshift=+0.9cm] (feat)  {feature\\analysis (3)};
-\node[box, below=0.7cm of load, xshift=+2.6cm] (suff)  {sufficiency\\checks (4)};
+\node[box, below=0.7cm of load, xshift=-4.05cm] (qual)  {quality\\checks (6)};
+\node[box, below=0.7cm of load, xshift=-1.35cm] (leak)  {leakage\\checks (5)};
+\node[box, below=0.7cm of load, xshift=+1.35cm] (feat)  {feature\\analysis (3)};
+\node[box, below=0.7cm of load, xshift=+4.05cm] (suff)  {sufficiency\\checks (4)};
 
-\node[box, below=0.6cm of qual, xshift=1.8cm] (drift)  {drift\\detection (2)};
+\node[box, below=0.6cm of qual, xshift=2.7cm] (drift)  {drift\\detection (2)};
 \node[box, right=0.6cm of drift]  (impact) {impact\\analysis};
 \node[box, right=0.6cm of impact] (sem)    {semantic\\leakage\\\small(optional)};
 

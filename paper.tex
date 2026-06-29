@@ -341,7 +341,7 @@ six analysis phases in parallel; results are aggregated into a
 \draw[arr] (ia.south) -- ++(0,-0.12) coordinate(br); \draw[arr] (br) -- (rep.east);
 % row 5: outputs
 \node[outbox,fill=green!10] (rs) at (-1.3,-4.75) {Readiness \\ Score (A--F)};
-\node[outbox,fill=green!10] (rc) at ( 1.3,-4.75) {Recommenda- \\ tions (20)};
+\node[outbox,fill=green!10] (rc) at ( 1.3,-4.75) {Code-level \\ Recs. (20)};
 \draw[arr] (rep.south) -- ++(0,-0.12) coordinate(m2);
 \draw[arr] (m2) -- (rs.north);  \draw[arr] (m2) -- (rc.north);
 % row 6: exports
@@ -794,22 +794,22 @@ Pima Diabetes  & 96.2 & A & 19/22 & 51 outliers across 4 cols \\
   ymin=0, ymax=112,
   ytick={0,20,40,60,80,100},
   yticklabel style={font=\small},
-  nodes near coords,
-  nodes near coords align={vertical},
-  every node near coord/.style={font=\small\bfseries},
   grid=major, grid style={dashed, gray!25},
-  legend style={at={(0.02,0.98)}, anchor=north west, font=\small,
-                draw=gray!50, fill=white, fill opacity=0.9},
+  legend style={at={(0.5,1.12)}, anchor=south, font=\small,
+                draw=gray!50, fill=white, legend columns=-1,
+                /tikz/every even column/.append style={column sep=0.4cm}},
   legend cell align=left,
 ]
-\addplot[fill=teal!60, draw=teal!80]
+\addplot[fill=teal!60, draw=teal!80,
+         nodes near coords, nodes near coords align={vertical},
+         every node near coord/.style={font=\small\bfseries}]
   coordinates {(clean,98.8)(dirty,91.2)(leaky,71.6)(Titanic,80.6)(Diabetes,96.2)};
 \addplot[dashed, red!80, very thick, mark=none]
-  coordinates {(clean,85)(dirty,85)(leaky,85)(Titanic,85)(Diabetes,85)};
+  coordinates {(clean,85)(Diabetes,85)};
 \addplot[dashed, orange!90!black, very thick, mark=none]
-  coordinates {(clean,70)(dirty,70)(leaky,70)(Titanic,70)(Diabetes,70)};
+  coordinates {(clean,70)(Diabetes,70)};
 \addplot[dashed, yellow!70!black, very thick, mark=none]
-  coordinates {(clean,55)(dirty,55)(leaky,55)(Titanic,55)(Diabetes,55)};
+  coordinates {(clean,55)(Diabetes,55)};
 \legend{Readiness Score, Grade A ($\ge$85), Grade B ($\ge$70), Grade C ($\ge$55)}
 \end{axis}
 \end{tikzpicture}

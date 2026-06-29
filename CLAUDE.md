@@ -40,7 +40,7 @@ Institución: Illinois Institute of Technology
 | 16 — Unified leakage risk score + LLM semantic analysis | `src/leakage_checks.py`, `src/semantic_leakage.py` | 33 | ✅ |
 | 17 — LLM benchmark + configurable scoring + case studies | `data/semantic_benchmark.json`, `scripts/evaluate_semantic_leakage.py`, `scripts/case_studies.py`, `src/scoring.py`, `configs/config.yaml` | — | ✅ |
 | Demo notebook | `notebooks/framework_demo.ipynb` | — | ✅ |
-| Paper | `paper.tex`, `paper.pdf` (13 pages) | — | ✅ |
+| Paper | `paper.tex`, `paper.pdf` (15 pages) | — | ✅ |
 
 **Total: 325 tests, 325 passed.**
 
@@ -72,7 +72,7 @@ ml-framework/
 │   └── wine_quality.csv            — Wine Quality Red (1,599 rows) [Phase 16]
 ├── notebooks/
 │   └── framework_demo.ipynb        — 14-cell executed notebook
-├── paper.tex                       — LaTeX source (13 pages, conference format)
+├── paper.tex                       — LaTeX source (15 pages, conference format)
 ├── paper.pdf                       — Compiled PDF
 ├── reports/                        — HTML reports + PNG figures + JSON exports
 │   ├── benchmark_results.json      — Tool comparison data [Phase 16]
@@ -113,7 +113,7 @@ ml-framework/
 
 ---
 
-## Pipeline de ejecución (22 checks activos)
+## Pipeline de ejecución (20 checks activos + impact analysis + semantic opcional)
 
 ```
 config.yaml → load_dataset()
@@ -191,27 +191,37 @@ Grado: A≥85, B≥70, C≥55, D≥40, F<40
 
 ## Resultados experimentales
 
-### Datasets principales (21 checks)
+**⚠️ Estos son los números vigentes (re-ejecutados sobre el pipeline actual, 2026-06-29).
+Los valores anteriores de esta tabla estaban obsoletos/no reproducibles y fueron sustituidos
+tras la segunda ronda de revisión — ver sección de feedback más abajo.**
+
+### Datasets principales (20 checks + impact analysis)
 | Dataset | Rows | Score | Grade | Pass/Total | Key findings |
 |---------|------|-------|-------|-----------|--------------|
-| clean_dataset | 500 | 95 | A | 21/21 | Zero false positives (control) |
-| dirty_dataset | 5,300 | 65 | C | 12/21 | 5 quality issues, 2 sufficiency |
-| leaky_dataset | 5,320 | 72 | B | 11/21 | target_leakage, temporal, ID |
-| Titanic | 1,309 | 75 | B | 17/21 | boat column r=0.97 |
-| Diabetes | 768 | 80 | B | 20/21 | 51 outliers (physiological zeros) |
+| clean_dataset | 500 | 98.8 | A | 21/23 | Near-zero MI en 1 feature; drift leve |
+| dirty_dataset | 5,300 | 91.2 | A | 16/23 | 7 warnings calidad/features, sin leakage |
+| leaky_dataset | 5,320 | 71.6 | B | 12/23 | target_leakage + LRS errors |
+| Titanic | 1,309 | 80.6 | B | 14/22 | `name` (Cramér's V=0.999); `boat` LRS=0.74 |
+| Diabetes | 768 | 96.2 | A | 19/22 | 51 outliers en 4 cols |
 
 ### Datasets UCI adicionales (Phase 16)
 | Dataset | Rows | Score | Grade | Primary issues |
 |---------|------|-------|-------|----------------|
-| Adult Census | 48,842 | 68 | C | Class imbalance (76/24), missing values |
-| German Credit | 1,000 | 74 | B | Class imbalance (70/30), feature correlation |
-| Heart Disease | 303 | 62 | C | Low n/p=21.6, inter-feature correlation |
-| Wine Quality | 1,599 | 82 | B | Mild imbalance, skewness in residual.sugar |
+| Adult Census | 48,842 | 92.4 | A | Missing values, 52 duplicates, skew en capital-gain |
+| German Credit | 1,000 | 97.5 | A | 3 features con MI casi nula, outliers |
+| Heart Disease | 303 | 96.8 | A | Low n/p=23.3 (target corregido, ver nota abajo) |
+| Wine Quality | 1,599 | 88.6 | A | 240 duplicates (15%, error), drift en 9/11 features |
 
-**Resultado clave:** leaky_dataset baseline accuracy = 1.000 → cleaned = 0.952 (Δ = −0.048).
+**Resultado clave:** leaky_dataset (LR) baseline accuracy = 1.000 → cleaned = 0.952 (Δ = −0.048).
+
+**Nota Heart Disease:** `scripts/download_more_datasets.py::download_heart_disease()` tenía un
+bug real (regex que colapsaba el target a una sola clase); corregido — ver sección de feedback.
 
 ### Benchmark vs herramientas (Phase 16)
-| Herramienta | Checks (de 29) | Detección leakage (de 4) |
+"29" = checklist de comparación cross-tool (más granular que el pipeline propio de 20 checks,
+no confundir ambos números — ver `scripts/benchmark_comparison.py::FEATURE_MATRIX`).
+
+| Herramienta | Checklist items (de 29) | Detección leakage (de 4) |
 |-------------|---------------|--------------------------|
 | ml-framework | **29/29** | **4/4** |
 | Deepchecks | 11/29 | 0/4 |
@@ -223,7 +233,7 @@ Grado: A≥85, B≥70, C≥55, D≥40, F<40
 ## Paper académico
 
 - **Archivo:** `paper.tex` / `paper.pdf`
-- **Formato:** 13 páginas, single-column, 11pt Times New Roman, estilo conferencia
+- **Formato:** 15 páginas, single-column, 11pt Times New Roman, estilo conferencia
 - **Compilar:** `tectonic paper.tex` (requiere Homebrew `tectonic`)
 - **Referencias:** 19 (Kaufman 2012, Sculley 2015, Breck 2019, Pedregosa 2011, Chen 2016, Kraskov 2004, Ross 2014, Rabanser 2019, Siddiqi 2006, McKinney 2010, OpenAI 2023, UCI 2017, Zha 2023, Narayan 2022, Sui 2023, Ng 2021, ydata-profiling, Great Expectations, Deepchecks)
 - **Formato técnico:** fancyhdr (header/footer), mdframed (abstract box), titlesec (línea bajo secciones), captionsetup (labels en negrita), arraystretch=1.12, listings con fondo gris, widowpenalty/clubpenalty, emergencystretch
@@ -373,7 +383,13 @@ no reproducible/superado, no como causado por el bug).
 
 - **Archivo:** `tfm.tex` / `tfm.pdf` (50 páginas, formato UPM — Máster Universitario en Ingeniería de Telecomunicación, ETSIT).
 - **Compilar:** `tectonic tfm.tex`.
-- **Estilo visual:** barras naranjas (`upmOrange`) en títulos de capítulo vía macro `\upmchapter{}`, secciones en naranja con regla inferior, subsecciones en azul (`upmBlue`) — replica el estilo de `tfm-upm.pdf` (plantilla oficial UPM, **no tocar** este fichero de referencia, debe quedarse sin trackear en git).
+- **Estilo visual (actualizado 2026-06-29 para matchear `tfm-upm.pdf`/TFG de referencia exactamente):**
+  - Capítulos/Anexos: barra naranja (`upmOrange`) vía macro `\upmchapter{}`, título en **MAYÚSCULAS**. La barra usa `\colorbox` envolviendo un `\parbox` (macro `\upmchapterbar`) que se ajusta automáticamente a 1 o 2 líneas — **no usar una altura fija**, rompía visualmente con títulos largos (ej. el Anexo A en 2 líneas).
+  - Secciones: naranja, MAYÚSCULAS, con regla inferior (`\titlerule`).
+  - Subsecciones: azul (`upmBlue`), **MAYÚSCULAS, con regla inferior fina** (antes no tenían regla ni mayúsculas — este es el detalle que más se parecía al "A.2.1 IMPACTOS ÉTICOS" de la plantilla oficial).
+  - Subsubsecciones: cursiva azul, mayúsculas.
+  - Índice (ToC) y cabeceras de página: se mantienen en Title Case normal (solo el título en la propia página va en mayúsculas) para legibilidad.
+  - `tfm-upm.pdf` sigue siendo el fichero de referencia oficial, **no tocar**, sin trackear en git.
 - **Estructura actual (6 capítulos + 2 anexos):**
   1. Introduction and Objectives
   2. Development (Estado del arte, Arquitectura, Metodología, Implementación, Resumen de fases)
@@ -381,13 +397,20 @@ no reproducible/superado, no como causado por el bug).
   4. **Tools** (separado de Development: 4.1 Tools Used During Development, 4.2 Tools Used During Testing and Evaluation)
   5. Conclusions and Future Research (incluye Bibliografía como capítulo automático vía `thebibliography`)
   Anexo A: Ethical, Economic, Social, and Environmental Aspects
-  Anexo B: Economic Budget (B.1 Cost of Labor, B.2 Cost of Material Resources, B.3 Budget Summary)
+  Anexo B: Economic Budget (tabla única: Cost of Labor / Cost of Material Resources / General Overheads + Industrial Profit / Subtotal + VAT / Total — ver detalle abajo)
   - Front matter: Resumen, Summary, **Acronyms**, Contents, List of Figures, List of Tables.
 
 ### Feedback del Ponente/tutor en España (2026-06-24)
 
 1. ✅ **Figura 1 del paper rota** (cajas/líneas superpuestas) → corregido en `paper.tex` (nodo `outbox` minimum height 0.6→0.9cm + espaciado fila 6 de 0.9→1.3cm) → commit `6eff47b`.
 2. ✅ **Estructura de capítulos "todo metido en el 2"** → resuelto usando como referencia el TFG previo del autor (`TFG-JaimeCanoMoraño_vf.pdf`, ETSIT-UPM 2023-24): se extrajo el capítulo 4 "Tools" replicando el patrón 4.1/4.2 del TFG, en vez de partir Development en "state of the art / architecture" (el propio TFG de referencia tampoco separa eso, mantiene un único capítulo "Desarrollo").
-3. ✅ **Presupuesto "un poco raro"** → Anexo B reescrito con estructura estándar de presupuesto de ingeniería española (mano de obra + recursos materiales = Costes Directos; +15% gastos generales; +6% beneficio industrial; +21% IVA) → Total: €16,436.92 (antes: lista plana de 19 filas a €35/h, €10,925 sin overhead/IVA).
+3. ✅ **Presupuesto "un poco raro"** → Anexo B reescrito con estructura estándar de presupuesto de ingeniería española (mano de obra + recursos materiales = Costes Directos; +gastos generales; +beneficio industrial; +IVA).
 4. ✅ **Página de Acrónimos** añadida al front matter, replicando convención del TFG de referencia.
 - Commit de la restructuración de `tfm.tex`: `37e2ef3`.
+
+### Ronda de pulido visual y presupuesto (2026-06-29)
+
+1. ✅ **Figuras del paper/tesis mejoradas** (commits `48d9b4e`, `88a4d9f`): caja "Recommendations (20)" del diagrama de pipeline acortada a "Code-level / Recs. (20)" para no quedar más grande que sus vecinas. En el gráfico de barras de readiness scores: la leyenda se movió fuera del área de datos (ya no tapa la primera columna), y las líneas de umbral de grado A/B/C pasaron de ser puntos repetidos por barra (causando "columnas" falsas, bug real de `ybar`+`addplot` de 2 puntos) a líneas `\draw` continuas con `axis cs:`, coloreadas verde/naranja/rojo (A/B/C).
+2. ✅ **Pulido de redundancia narrativa + auditoría final de cifras** (commit `0b0cdd3`): la explicación completa del caso `boat`/`name` (Titanic) se contaba 3 veces por documento; recortada para que el caso de estudio remita a Discussion. Cifras "29 checks" sueltas sin el framing "checklist" corregidas. Añadidos CD/VAT a Acrónimos (CI se añadió y luego se quitó, ver punto 4).
+3. ✅ **Estilo de cabeceras de tfm.tex** (commit `b4ea399`) → ver sección de estilo visual arriba.
+4. ✅ **Presupuesto bajado y simplificado** (commit `05fdaac`), siguiendo el ejemplo visual de Anexo B del TFG de referencia: tabla única por secciones (en vez de 3 tablas separadas), beneficio industrial calculado sobre CD (no CD+CI, igual que el TFG de referencia), tarifa bajada de €35/h a €15/h (manteniendo las 312h ya justificadas en la Tabla 2.5 de fases), 2 partidas de material (portátil amortizado + tokens API) en vez de 3. **Total: €16,436.92 → €7,086.24.** Acrónimo "CI" eliminado (ya no se usa "Indirect Costs" como concepto propio en la tabla simplificada).

@@ -804,13 +804,16 @@ Pima Diabetes  & 96.2 & A & 19/22 & 51 outliers across 4 cols \\
          nodes near coords, nodes near coords align={vertical},
          every node near coord/.style={font=\small\bfseries}]
   coordinates {(clean,98.8)(dirty,91.2)(leaky,71.6)(Titanic,80.6)(Diabetes,96.2)};
-\addplot[dashed, red!80, very thick, mark=none]
-  coordinates {(clean,85)(Diabetes,85)};
-\addplot[dashed, orange!90!black, very thick, mark=none]
-  coordinates {(clean,70)(Diabetes,70)};
-\addplot[dashed, yellow!70!black, very thick, mark=none]
-  coordinates {(clean,55)(Diabetes,55)};
-\legend{Readiness Score, Grade A ($\ge$85), Grade B ($\ge$70), Grade C ($\ge$55)}
+\addlegendentry{Readiness Score}
+\draw[dashed, green!50!black, very thick] (axis cs:clean,85) -- (axis cs:Diabetes,85);
+\addlegendimage{dashed, green!50!black, very thick}
+\addlegendentry{Grade A ($\ge$85)}
+\draw[dashed, orange!90!black, very thick] (axis cs:clean,70) -- (axis cs:Diabetes,70);
+\addlegendimage{dashed, orange!90!black, very thick}
+\addlegendentry{Grade B ($\ge$70)}
+\draw[dashed, red!70!black, very thick] (axis cs:clean,55) -- (axis cs:Diabetes,55);
+\addlegendimage{dashed, red!70!black, very thick}
+\addlegendentry{Grade C ($\ge$55)}
 \end{axis}
 \end{tikzpicture}
 \caption{Readiness scores across five datasets. The clean control scores

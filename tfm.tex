@@ -1503,11 +1503,13 @@ Figure~\ref{fig:readiness} visualises the scores alongside grade thresholds.
 \addplot[fill=teal!60, draw=teal!80,
          nodes near coords, every node near coord/.style={font=\small\bfseries}]
   coordinates {(clean,98.8)(dirty,91.2)(leaky,71.6)(Titanic,80.6)(Diabetes,96.2)};
-\addplot[dashed, red!80, very thick, mark=none]
-  coordinates {(clean,85)(Diabetes,85)};
-\addplot[dashed, orange!90!black, very thick, mark=none]
-  coordinates {(clean,70)(Diabetes,70)};
-\legend{Readiness Score, Grade A ($\ge$85), Grade B ($\ge$70)}
+\addlegendentry{Readiness Score}
+\draw[dashed, green!50!black, very thick] (axis cs:clean,85) -- (axis cs:Diabetes,85);
+\addlegendimage{dashed, green!50!black, very thick}
+\addlegendentry{Grade A ($\ge$85)}
+\draw[dashed, orange!90!black, very thick] (axis cs:clean,70) -- (axis cs:Diabetes,70);
+\addlegendimage{dashed, orange!90!black, very thick}
+\addlegendentry{Grade B ($\ge$70)}
 \end{axis}
 \end{tikzpicture}
 \caption{Readiness scores across five principal datasets.  The clean control scores

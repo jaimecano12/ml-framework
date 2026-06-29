@@ -404,13 +404,14 @@ Table~\ref{tab:modules} summarises the 14 source modules.  The shared
 dataclass hierarchy (\texttt{CheckResult}, \texttt{FrameworkReport},
 \texttt{ReadinessScore}) defined in \texttt{utils.py} is used by all modules.
 The framework is implemented in Python on top of
-pandas~\cite{mckinney2010data}, scikit-learn~\cite{pedregosa2011scikit} for
-statistical tests, mutual information estimation, and the logistic
-regression and random forest models, and XGBoost~\cite{chen2016xgboost} for
-the gradient-boosted model used in impact analysis (Section~\ref{sec:methodology}).
-All UCI/OpenML evaluation datasets~\cite{dua2017uci} were retrieved through
-OpenML, and the semantic leakage module is built on GPT-4o-mini, in the
-GPT-4 model family~\cite{openai2023gpt4}, via Azure OpenAI.
+pandas~\cite{mckinney2010data} and scikit-learn~\cite{pedregosa2011scikit}
+for statistical tests, mutual information estimation, and the logistic
+regression and random forest models, plus
+XGBoost~\cite{chen2016xgboost} for the gradient-boosted model used in
+impact analysis (Section~\ref{sec:methodology}).  All UCI/OpenML
+evaluation datasets~\cite{dua2017uci} were retrieved through OpenML.  The
+semantic leakage module is built on GPT-4o-mini, from the GPT-4 model
+family~\cite{openai2023gpt4}, accessed via Azure OpenAI.
 
 \begin{table}[!h]
 \centering

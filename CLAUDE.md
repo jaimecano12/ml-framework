@@ -325,6 +325,44 @@ Todo incorporado en Phase 16 y documentado en el paper con secciones específica
 
 **Respuesta enviada al profesor** indicando sección exacta del paper para cada punto (mail redactado 2026-06-05).
 
+### Segunda ronda de revisión — issues críticos (2026-06-29)
+
+Feedback recibido: números inconsistentes (29 vs 21 checks), readiness scores contradictorios
+entre tablas (Titanic/Adult/German Credit con valores distintos en Tabla 3 vs Tabla 7), cita
+rota `[?]` en página 9, Heart Disease ausente del conteo de datasets en §5.1. Todo corregido
+en commit `6323ffb`:
+
+1. ✅ **Conteo de checks** → estandarizado: pipeline propio = **20 checks** (6+5+3+4+2) en 5
+   dimensiones; el **29** pasa a describirse explícitamente como un *checklist* de comparación
+   cross-tool separado (`scripts/benchmark_comparison.py::FEATURE_MATRIX`), usado solo en §6.
+2. ✅ **Scores contradictorios** → causa real encontrada: un bug de datos, no solo de
+   redacción. `scripts/download_more_datasets.py::download_heart_disease()` derivaba el target
+   con una regex que extraía dígitos de las etiquetas categóricas `'<50'`/`'>50_1'` — ambas
+   contienen "50", colapsando el target a una sola clase en las 303 filas. Corregido derivando
+   el label directamente del string de categoría (split real 165/138). Se re-ejecutó el pipeline
+   completo sobre los 9 datasets reales/sintéticos relevantes y se reemplazaron todos los
+   números de las Tablas 3/4/6/7 y Fig.2 del paper con un único conjunto de resultados
+   reproducible (`tectonic paper.tex` + pytest 325/325 verificado tras el fix).
+3. ✅ **Cita rota** → `\cite{siddiqi2006}` (sin definir) → `\cite{siddiqi2006credit}`; además se
+   añadieron 6 `\cite` que faltaban para entradas de la bibliografía nunca citadas
+   (chen2016xgboost, dua2017uci, mckinney2010data, ng2021datacentric, openai2023gpt4,
+   pedregosa2011scikit).
+4. ✅ **Heart Disease ausente en §5.1** → abstract y §5.1 ahora dicen "six real-world + six
+   synthetic (twelve total)", listando Heart Disease explícitamente.
+5. ✅ **Pesos LRS sin justificar** → Tabla 8 (ablation): bajo un esquema *correlation-heavy*,
+   `boat` de Titanic cae de $\mathcal{L}=0.74$ a $0.66$ (por debajo del umbral) — evidencia
+   empírica de por qué los pesos por defecto no sobreponderan la correlación.
+6. ✅ **Benchmark semántico "demasiado perfecto"** → se descubrió que la Tabla de evaluación
+   semántica se generó con `--mock` (un emparejador de patrones que conoce los nombres exactos
+   del benchmark), no con GPT-4o-mini real. Sin credenciales de Azure disponibles, se optó
+   (decisión del usuario) por declararlo explícitamente como validación del arnés de evaluación,
+   no como medida de precisión real del LLM; evaluación en vivo movida a future work prioritario.
+7. ✅ **"Outperforms" demasiado fuerte** → abstract reescrito a "complements ... fills a gap".
+
+**Pendiente:** estos mismos números (Heart Disease, conteo de checks 21↔29, etc.) están
+duplicados en `tfm.tex` (capítulo Results) y heredan el mismo bug de datos; no se han
+propagado todavía — ver conversación para decidir si se replica el mismo trabajo allí.
+
 ---
 
 ## Tesis TFM (tfm.tex)

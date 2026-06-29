@@ -49,12 +49,17 @@
 \renewcommand{\arraystretch}{1.15}
 
 % ── Chapter / Section formatting matching tfm-upm.pdf reference ──────────────
-% Chapter headings: solid orange bar background, 16pt bold black text
+% Chapter headings: solid orange bar background, 16pt bold black text, all-caps.
+% The bar is a \colorbox around a \parbox sized to the actual title, so it grows
+% to fit two-line titles instead of a fixed-height bar that clips the 2nd line.
+\newcommand{\upmchapterbar}[1]{%
+  \noindent\colorbox{upmOrange}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
+    \strut\MakeUppercase{#1}\strut}}\par\vspace{2pt}}
 \titleformat{\chapter}[block]
   {\normalfont\fontsize{16}{19}\bfseries}
   {}
   {0pt}
-  {\noindent\colorbox{upmOrange}{\rule{0pt}{0.95cm}\rule{\dimexpr\textwidth-2\fboxsep\relax}{0pt}}\\[-0.75cm]\hspace{6pt}}
+  {\upmchapterbar}
 \titlespacing*{\chapter}{0pt}{6pt}{14pt}
 
 % \upmchapter{Title}: numbered chapter heading rendered via \chapter* so the
@@ -78,23 +83,25 @@
 % own (un-barred) title; route them back through \chapter* so they get the bar.
 \makeatletter
 \AtBeginDocument{%
-  \renewcommand{\listoffigures}{\chapter*{\listfigurename}\@starttoc{lof}}%
-  \renewcommand{\listoftables}{\chapter*{\listtablename}\@starttoc{lot}}%
+  \renewcommand{\listoffigures}{\chapter*{\MakeUppercase{\listfigurename}}\@starttoc{lof}}%
+  \renewcommand{\listoftables}{\chapter*{\MakeUppercase{\listtablename}}\@starttoc{lot}}%
 }
 \makeatother
 
-% Ttulo2: 14pt bold orange, no numbering prefix indent (section headings)
+% Ttulo2: 14pt bold orange, all-caps, no numbering prefix indent (section headings)
 \titleformat{\section}
-  {\normalfont\fontsize{14}{17}\bfseries\color{upmOrange}}{\thesection}{0.7em}{}
+  {\normalfont\fontsize{14}{17}\bfseries\color{upmOrange}}{\thesection}{0.7em}{\MakeUppercase}
   [{\color{upmOrange!55}\titlerule[0.7pt]}]
 \titlespacing*{\section}{0pt}{15pt plus 3pt}{6pt}
-% Ttulo3: 12pt bold dark-blue (subsection headings)
+% Ttulo3: 12pt bold dark-blue, all-caps, with a thin blue rule (subsection headings)
 \titleformat{\subsection}
-  {\normalfont\normalsize\bfseries\color{upmBlue}}{\thesubsection}{0.6em}{}
+  {\normalfont\normalsize\bfseries\color{upmBlue}}{\thesubsection}{0.6em}{\MakeUppercase}
+  [{\color{upmBlue!55}\titlerule[0.5pt]}]
 \titlespacing*{\subsection}{0pt}{12pt plus 2pt}{4pt}
-% subsubsection: italic dark-blue
+% subsubsection: italic dark-blue, all-caps
 \titleformat{\subsubsection}
-  {\normalfont\normalsize\itshape\color{upmBlue}}{\thesubsubsection}{0.5em}{}
+  {\normalfont\normalsize\itshape\color{upmBlue}}{\thesubsubsection}{0.5em}{\MakeUppercase}
+\titlespacing*{\subsubsection}{0pt}{10pt plus 2pt}{3pt}
 
 % ── Headers & footers ────────────────────────────────────────────────────────
 \pagestyle{fancy}

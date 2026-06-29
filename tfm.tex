@@ -352,7 +352,6 @@ information, large language models, GPT-4o-mini.
 \begin{tabular}{@{}p{2.2cm}p{12cm}@{}}
 \textbf{API}    & Application Programming Interface \\
 \textbf{CD}     & Direct Costs (\textit{Costes Directos}, Annex~\ref{app:budget}) \\
-\textbf{CI}     & Indirect Costs (\textit{Costes Indirectos}, Annex~\ref{app:budget}) \\
 \textbf{CLI}    & Command-Line Interface \\
 \textbf{CV}     & Cross-Validation \\
 \textbf{GPT}    & Generative Pre-trained Transformer \\
@@ -2606,109 +2605,55 @@ work presented in Chapters~\ref{ch:development}--\ref{chap:conclusions}.
 \upmchapter{Economic Budget}
 \label{app:budget}
 
-This annex breaks down the project budget following the standard direct/indirect cost
-structure used in Spanish engineering project budgets: labor and material costs (direct
-costs), general overheads and industrial profit margin (indirect costs), and applicable VAT.
+The budget is made up of the following items:
 
-\section{Cost of Labor}
+\begin{itemize}[leftmargin=1.5em]
+\item Cost of labor
+\item Cost of material resources
+\item General overheads and industrial profit
+\item Total budget
+\end{itemize}
 
-Table~\ref{tab:budget} details the engineering hours invested in each project phase,
-evaluated at a junior-to-mid-level software engineering rate of \texteuro{}35/hour.
+Table~\ref{tab:budget} presents the detailed budget in euros (\texteuro{}). The 312 hours
+of labor correspond to the seventeen-phase development process detailed in
+Table~\ref{tab:phases} (Section~\ref{sec:phases}), evaluated at a TFM-student labor rate of
+\texteuro{}15/hour.
 
 \begin{table}[!ht]
 \centering
-\caption{Cost of labor (mano de obra) by project phase.}
+\caption{Economic budget.}
 \label{tab:budget}
-\rowcolors{2}{white}{tblAltRow}
-\begin{tabularx}{\textwidth}{lrrrX}
-\toprule
-\tblhead \textbf{Phase / Activity} & \textbf{Hours} & \textbf{Rate (\texteuro{}/h)} & \textbf{Cost (\texteuro{})} & \textbf{Description} \\
-\midrule
-Scaffold \& utilities (1--2)      & 20  & 35 & 700   & Project structure, config, dataclasses \\
-Quality checks (3)                & 15  & 35 & 525   & 6 quality checks + 44 tests \\
-Leakage detection (4)             & 20  & 35 & 700   & 4 classical checks + 41 tests \\
-Impact analysis (5)               & 15  & 35 & 525   & CV baseline comparison \\
-Report generation (6)             & 20  & 35 & 700   & Jinja2 HTML + Matplotlib \\
-Experiments \& scripts (7)        & 10  & 35 & 350   & Dataset generation scripts \\
-Recommendations (8)               & 12  & 35 & 420   & 20 rule handlers \\
-Feature analysis (9)              & 15  & 35 & 525   & Correlation, MI, distribution \\
-Readiness score (10)              & 10  & 35 & 350   & Composite score + grades \\
-Sufficiency (11)                  & 12  & 35 & 420   & 4 statistical checks \\
-Streamlit app (12)                & 20  & 35 & 700   & 7-tab web dashboard \\
-Python SDK (13)                   & 10  & 35 & 350   & DatasetChecker class \\
-Drift detection (14)              & 12  & 35 & 420   & KS test + PSI \\
-Plugin system (15)                & 8   & 35 & 280   & @register\_check API \\
-Unified risk score + LLM (16)     & 30  & 35 & 1,050 & Eq.~1 + semantic module \\
-Benchmark + case studies (17)     & 20  & 35 & 700   & Evaluation suite \\
-Demo notebook                     & 8   & 35 & 280   & 14-cell executed notebook \\
-Research paper (LaTeX)            & 25  & 35 & 875   & 13-page conference paper \\
-Thesis document (LaTeX)           & 30  & 35 & 1,050 & Full TFM write-up \\
-\midrule
-\textbf{Total cost of labor}      & \textbf{312} & & \textbf{10{,}920} & \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\section{Cost of Material Resources}
-
-Table~\ref{tab:budget-materials} lists the material resources used during the project.
-Equipment is amortized over its useful life, prorated to the months actually dedicated
-to the project; cloud API usage and software licences are charged as direct expenses.
-
-\begin{table}[!ht]
-\centering
-\caption{Cost of material resources (recursos materiales).}
-\label{tab:budget-materials}
-\rowcolors{2}{white}{tblAltRow}
-\small
 \begin{tabularx}{\textwidth}{Xrrrr}
 \toprule
-\tblhead \textbf{Item} & \textbf{Price (\texteuro{})} & \textbf{Life (yr)} & \textbf{Use (mo)} & \textbf{Cost (\texteuro{})} \\
+\multicolumn{5}{l}{\cellcolor{tblHeadBg}\color{white}\bfseries COST OF LABOR (direct cost)} \\
 \midrule
-Development laptop          & 1{,}500 & 4   & 7   & 218.75 \\
-Cloud API (Azure OpenAI)     & ---     & --- & --- & 5.00 \\
-Software licences (open-source) & ---  & --- & --- & 0.00 \\
+ & \textbf{Hours} & \textbf{Rate (\texteuro{}/h)} & & \textbf{Total} \\
+ & 312 & 15.00 & & 4{,}680.00 \texteuro{} \\
 \midrule
-\textbf{Total cost of material resources} & & & & \textbf{223.75} \\
+\multicolumn{5}{l}{\cellcolor{tblHeadBg}\color{white}\bfseries COST OF MATERIAL RESOURCES (direct cost)} \\
+\midrule
+ & \textbf{Purchase price} & \textbf{Use (mo.)} & \textbf{Life (yr)} & \textbf{Total} \\
+Development laptop (incl.\ software) & 1{,}200.00 \texteuro{} & 7 & 5 & 140.00 \texteuro{} \\
+Azure OpenAI API tokens & 20.00 \texteuro{} & 7 & --- & 20.00 \texteuro{} \\
+\midrule
+\textbf{TOTAL MATERIALS COST} & & & & \textbf{160.00 \texteuro{}} \\
+\midrule
+\textbf{GENERAL OVERHEADS} & 15\% & over CD & & \textbf{726.00 \texteuro{}} \\
+\textbf{INDUSTRIAL PROFIT} & 6\% & over CD & & \textbf{290.40 \texteuro{}} \\
+\midrule
+\textbf{SUBTOTAL BUDGET} & & & & \textbf{5{,}856.40 \texteuro{}} \\
+\textbf{APPLICABLE VAT} & 21\% & & & \textbf{1{,}229.84 \texteuro{}} \\
+\midrule
+\textbf{TOTAL BUDGET} & & & & \textbf{7{,}086.24 \texteuro{}} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\section{Budget Summary}
-
-Table~\ref{tab:budget-summary} aggregates the direct costs from
-Tables~\ref{tab:budget}--\ref{tab:budget-materials} and applies the standard indirect-cost
-structure: general overheads (\textit{gastos generales}, 15\% of direct costs), industrial
-profit margin (\textit{beneficio industrial}, 6\% of direct plus indirect costs), and
-applicable VAT (21\%).
-
-\begin{table}[!ht]
-\centering
-\caption{Budget summary (presupuesto).}
-\label{tab:budget-summary}
-\rowcolors{2}{white}{tblAltRow}
-\begin{tabularx}{\textwidth}{Xr}
-\toprule
-\tblhead \textbf{Concept} & \textbf{Amount (\texteuro{})} \\
-\midrule
-Cost of labor                                   & 10{,}920.00 \\
-Cost of material resources                      & 223.75 \\
-\midrule
-\textbf{Direct costs (CD)}                      & \textbf{11{,}143.75} \\
-General overheads (15\% CD)                     & 1{,}671.56 \\
-\midrule
-\textbf{Direct + indirect costs (CD + CI)}      & \textbf{12{,}815.31} \\
-Industrial profit (6\% of CD + CI)               & 768.92 \\
-\midrule
-\textbf{Subtotal budget}                        & \textbf{13{,}584.23} \\
-VAT (21\%)                                      & 2{,}852.69 \\
-\midrule
-\textbf{TOTAL BUDGET}                           & \textbf{16{,}436.92} \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-The total estimated budget for the development of this project, including labor, material
-resources, overheads, industrial profit, and VAT, amounts to \textbf{\texteuro{}16,436.92}.
+Direct costs (CD) are the sum of the cost of labor (\texteuro{}4,680.00) and the cost of
+material resources (\texteuro{}160.00), i.e.\ \texteuro{}4,840.00. General overheads and
+industrial profit are computed as percentages of CD, following the standard direct/indirect
+cost structure used in Spanish engineering project budgets. The total estimated budget for
+the development of this project, including labor, material resources, overheads, industrial
+profit, and VAT, amounts to \textbf{\texteuro{}7,086.24}.
 
 \end{document}

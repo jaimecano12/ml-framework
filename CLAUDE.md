@@ -359,9 +359,13 @@ en commit `6323ffb`:
    no como medida de precisión real del LLM; evaluación en vivo movida a future work prioritario.
 7. ✅ **"Outperforms" demasiado fuerte** → abstract reescrito a "complements ... fills a gap".
 
-**Pendiente:** estos mismos números (Heart Disease, conteo de checks 21↔29, etc.) están
-duplicados en `tfm.tex` (capítulo Results) y heredan el mismo bug de datos; no se han
-propagado todavía — ver conversación para decidir si se replica el mismo trabajo allí.
+✅ **Propagado a `tfm.tex`** (commit `4602b7e`): mismo trabajo replicado en el capítulo
+Results/Conclusions — incluye un bug propio adicional encontrado ahí (`tab:all_checks`
+afirmaba "22 total" pero la tabla solo listaba 21 filas), la tabla de ablation de pesos LRS,
+la divulgación del mock semántico, y la corrección de Heart Disease + verificación empírica
+de que el bug de datos NO explica el antiguo número 62/100 (el dataset roto de una sola
+clase en realidad puntúa 94.2/A con el pipeline actual, así que ese número se trata como
+no reproducible/superado, no como causado por el bug).
 
 ---
 

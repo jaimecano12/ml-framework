@@ -965,19 +965,14 @@ German Credit   &  1,000 & 97.5 & A & 3 near-zero MI features; 25 outliers \\
 \end{table}
 
 On Titanic, the dedicated \texttt{target\_leakage} check flags \texttt{name}
-(Cram\'er's $V{=}0.999$), and the unified leakage risk score additionally
+(Cram\'er's $V{=}0.999$) and the unified leakage risk score additionally
 flags \texttt{boat} ($\mathcal{L}{=}0.739$) as a post-hoc leaky feature
 (lifeboat assignment was recorded after the outcome), alongside four
 columns exceeding the 5\% missing-value threshold and a distributional
-shift between dataset halves.  The \texttt{name} flag is itself a useful
-illustration of a known limitation of Cram\'er's $V$ on near-unique
-categorical columns (Section~\ref{sec:discussion}): almost every passenger
-has a distinct name, which inflates the association statistic even though
-a passenger's name carries no genuine post-hoc information; the
-\texttt{id\_column\_leakage} check independently flags the same column on
-cardinality grounds, so a practitioner reviewing the report would not miss
-that \texttt{name} should be excluded regardless of the exact mechanism
-that flagged it.  On Adult Census Income ($n{=}48{,}842$), no leakage is
+shift between dataset halves.  Section~\ref{sec:discussion} discusses why
+these two flags arise through different, complementary mechanisms and what
+that implies for the framework's reliability.  On Adult Census Income
+($n{=}48{,}842$), no leakage is
 detected; the actionable findings are two columns with missing values,
 extreme skew in \texttt{capital-gain} ($\text{skewness}{=}11.9$), and 52
 duplicate rows.  German Credit scores highest (97.5/A), with the only

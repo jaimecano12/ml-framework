@@ -344,6 +344,8 @@ information, large language models, GPT-4o-mini.
 
 \begin{tabular}{@{}p{2.2cm}p{12cm}@{}}
 \textbf{API}    & Application Programming Interface \\
+\textbf{CD}     & Direct Costs (\textit{Costes Directos}, Annex~\ref{app:budget}) \\
+\textbf{CI}     & Indirect Costs (\textit{Costes Indirectos}, Annex~\ref{app:budget}) \\
 \textbf{CLI}    & Command-Line Interface \\
 \textbf{CV}     & Cross-Validation \\
 \textbf{GPT}    & Generative Pre-trained Transformer \\
@@ -360,6 +362,7 @@ information, large language models, GPT-4o-mini.
 \textbf{TFM}    & Trabajo Fin de M\'aster (Master's Thesis) \\
 \textbf{UCI}    & University of California, Irvine (Machine Learning Repository) \\
 \textbf{UPM}    & Universidad Polit\'ecnica de Madrid \\
+\textbf{VAT}    & Value Added Tax (\textit{IVA}, Annex~\ref{app:budget}) \\
 \textbf{YAML}   & YAML Ain't Markup Language \\
 \end{tabular}
 
@@ -1748,19 +1751,15 @@ German Credit  & 1,000  & 97.5 & A & 3 near-zero MI features; 25 outliers \\
 \end{table}
 
 \textbf{Titanic.}  The dedicated \texttt{target\_leakage} check flags \texttt{name}
-(Cram\'er's $V{=}0.999$), and the unified leakage risk score additionally flags
+(Cram\'er's $V{=}0.999$) and the unified leakage risk score additionally flags
 \texttt{boat} ($\mathcal{L}{=}0.739$) as a post-hoc leaky feature: lifeboat assignment was
 recorded only after the sinking outcome, making it a trivially perfect but illegitimate
-predictor.  The \texttt{name} flag is itself a useful illustration of a known limitation of
-Cram\'er's $V$ on near-unique categorical columns (Section~\ref{sec:discussionresults}):
-almost every passenger has a distinct name, which inflates the association statistic even
-though a passenger's name carries no genuine post-hoc information.  This false positive is
-harmless in practice because the \texttt{id\_column\_leakage} check independently flags
-\texttt{name} on cardinality grounds, so a practitioner reading the report sees a
-consistent recommendation either way.  Four columns (\texttt{cabin}, \texttt{boat},
-\texttt{body}, \texttt{home.dest}) exceed the missing-value threshold.  A distributional
-shift is also detected between the first and second halves of the dataset when split by
-index, suggesting the records were not randomly ordered.
+predictor.  Section~\ref{sec:discussionresults} discusses why these two flags arise through
+different, complementary mechanisms and what that implies for the framework's reliability.
+Four columns (\texttt{cabin}, \texttt{boat}, \texttt{body}, \texttt{home.dest}) exceed the
+missing-value threshold, and a distributional shift is also detected between the first and
+second halves of the dataset when split by index, suggesting the records were not randomly
+ordered.
 
 \textbf{Adult Census Income.}  The Adult Census dataset ($n{=}48{,}842$) receives grade~A
 despite several warnings.  Two features (\texttt{workclass}, \texttt{occupation}) contain
@@ -2058,7 +2057,7 @@ Configurable scoring & All weights, penalties, and grade thresholds exposed in Y
 Plugin API & @register\_check decorator enabling custom checks without core code modification \\
 Streamlit dashboard & 7-tab interactive web application for non-programmatic users \\
 Impact analysis & Cross-validated before/after accuracy delta quantifying the practical cost of leakage ($\Delta{=}{-}0.048$) \\
-Benchmark & Comparison against 3 tools on 29 checks and 4 leakage scenarios; 325-test CI suite \\
+Benchmark & Comparison against 3 tools on a 29-item capability checklist and 4 leakage scenarios; 325-test CI suite \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -2149,10 +2148,10 @@ remediation of near-constant features (which, in this case, has no measurable ef
 either way).
 
 \textbf{A quantitative benchmark and a 325-test verification suite.}  Section~\ref{sec:benchmark}
-compares ml-framework against Great Expectations, ydata-profiling, and Deepchecks on 29
-ML-relevant checks and four constructed leakage scenarios
-(Table~\ref{tab:detection}--Table~\ref{tab:flexibility}): ml-framework covers 29/29 checks
-and detects 4/4 leakage scenarios, versus at most 11/29 checks and 1/4 scenarios for the best
+compares ml-framework against Great Expectations, ydata-profiling, and Deepchecks on a
+29-item capability checklist and four constructed leakage scenarios
+(Table~\ref{tab:detection}--Table~\ref{tab:flexibility}): ml-framework satisfies 29/29 items
+and detects 4/4 leakage scenarios, versus at most 11/29 items and 1/4 scenarios for the best
 alternative.  Internally, every one of these claims---and every score, table, and figure in
 this thesis---is protected by the 325-test suite summarised in Table~\ref{tab:tests}
 (Section~\ref{sec:implementation}), developed test-first across all seventeen phases of

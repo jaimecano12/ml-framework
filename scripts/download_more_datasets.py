@@ -41,9 +41,13 @@ def download_heart_disease(out_dir: Path) -> Path:
     data = fetch_openml("heart-c", version=1, as_frame=True, parser="auto")
     df = data.frame.copy()
 
-    # Target: 'num' column — 0 = no disease, 1/2/3/4 = disease present
-    target_raw = pd.to_numeric(df["num"].astype(str).str.extract(r"(\d+)")[0], errors="coerce").fillna(0)
-    df["disease"] = (target_raw > 0).astype(int)
+    # Target: 'num' column is a 2-level category on this OpenML version,
+    # '<50' (<= 50% diameter narrowing, no disease) vs '>50_1' (disease present).
+    # NB: a naive regex digit-extraction on these labels (e.g. r"(\d+)") pulls the
+    # "50" threshold out of *both* categories and silently mislabels every row —
+    # caught by re-deriving the target from the category string directly.
+    target_raw = df["num"].astype(str).str.strip()
+    df["disease"] = target_raw.str.startswith(">50").astype(int)
     df = df.drop(columns=["num"])
 
     path = out_dir / "heart_disease.csv"

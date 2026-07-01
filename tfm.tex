@@ -260,10 +260,10 @@ excelentes en validaci\'on pero fallan en producci\'on.
 Este Trabajo Fin de M\'aster presenta \textbf{ml-framework}, un sistema de c\'odigo abierto,
 desarrollado en 17 fases incrementales, para la evaluaci\'on autom\'atica de la calidad de
 conjuntos de datos y la detecci\'on de fuga de datos en flujos de trabajo de aprendizaje
-autom\'atico. El framework implementa un \textit{pipeline} de 22 comprobaciones organizadas en
-seis dimensiones --- calidad, fuga, an\'alisis de caracter\'isticas, suficiencia estad\'istica,
-detecci\'on de deriva e impacto sobre el rendimiento --- y es accesible mediante tres interfaces
-complementarias: una herramienta de l\'inea de comandos, un SDK de Python (\texttt{DatasetChecker})
+autom\'atico. El framework implementa un \textit{pipeline} de 20 comprobaciones organizadas en
+cinco dimensiones --- calidad, fuga, an\'alisis de caracter\'isticas, suficiencia estad\'istica
+y detecci\'on de deriva --- m\'as una etapa de an\'alisis de impacto, y es accesible mediante
+tres interfaces complementarias: una herramienta de l\'inea de comandos, un SDK de Python (\texttt{DatasetChecker})
 y una aplicaci\'on web interactiva basada en Streamlit. Un sistema de \textit{plugins}
 (\texttt{@register\_check}) permite a terceros a\~{n}adir comprobaciones personalizadas sin
 modificar el n\'ucleo del framework.
@@ -628,27 +628,17 @@ different defect profiles.
 \end{enumerate}
 
 % ════════════════════════════════════════════════════════════════════════════
-\upmchapter{Development}
-\label{ch:development}
-
-This chapter describes the full development of \textbf{ml-framework}: the state of the
-art against which it is positioned (Section~\ref{sec:relatedwork}), its architecture and
-user-facing design (Section~\ref{sec:architecture}), the statistical and algorithmic
-methodology underlying every check (Section~\ref{sec:methodology}), the engineering choices
-behind its implementation (Section~\ref{sec:implementation}), and finally a chronological
-overview of the seventeen incremental phases through which the system was built
-(Section~\ref{sec:phases}).
-
-\section{State of the Art and Related Work}
+\upmchapter{State of the Art and Related Work}
 \label{sec:relatedwork}
 
-This section situates ml-framework with respect to prior academic work and existing
-open-source tools.  Section~\ref{sec:tool_comparison} of Chapter~\ref{chap:intro} already
-introduced the four tools compared throughout this thesis (Great Expectations,
-ydata-profiling, Deepchecks, and TFDV) and Table~\ref{tab:tool_comparison}; the subsections
-below review the broader academic literature underpinning each component of the framework.
+This chapter situates ml-framework with respect to the prior academic work and existing
+open-source tools it builds upon.  The four tools most directly compared throughout this
+thesis---Great Expectations, ydata-profiling, Deepchecks, and TFDV---were introduced in
+Section~\ref{sec:tool_comparison} of Chapter~\ref{chap:intro} and summarised in
+Table~\ref{tab:tool_comparison}; the sections below review the broader academic literature
+underpinning each module of the framework.
 
-\subsection{Data Leakage Detection}
+\section{Data Leakage Detection}
 
 The problem of data leakage in machine learning has been studied from multiple angles.
 Kaufman et al.\ \cite{kaufman2012leakage} provide the most comprehensive taxonomy,
@@ -667,7 +657,7 @@ can explain---a signal similar to the performance inflation component in our uni
 Sui et al.\ \cite{sui2023} investigate leakage detection in automated ML pipelines, showing
 that standard AutoML tools are particularly vulnerable to preprocessor-induced contamination.
 
-\subsection{Dataset Quality Assessment}
+\section{Dataset Quality Assessment}
 
 Breck et al.\ \cite{breck2019} define a production readiness rubric for ML systems with
 28 tests covering data, models, and infrastructure.  Their data tests map closely to the
@@ -680,7 +670,7 @@ improvement of training data as a primary lever for ML performance.  Zha et al.\
 evaluate how much model improvement is achievable through data cleaning alone---a
 perspective that motivates the impact analysis component of ml-framework.
 
-\subsection{Mutual Information and Feature Relevance}
+\section{Mutual Information and Feature Relevance}
 
 Mutual information (MI) is a non-parametric association measure from information theory
 that captures arbitrary dependence, including nonlinear relationships that Pearson correlation
@@ -689,7 +679,7 @@ continuous MI that are used in sklearn's \texttt{mutual\_info\_classif}---the es
 in the unified leakage risk score.  Normalising MI by its maximum observed value across
 all features provides a scale-invariant signal suitable for aggregation.
 
-\subsection{Distribution Shift and Drift Detection}
+\section{Distribution Shift and Drift Detection}
 
 Rabanser et al.\ \cite{rabanser2019} provide a comprehensive survey of data drift detection
 methods, covering two-sample tests (Kolmogorov-Smirnov, MMD), dimensionality-reduction
@@ -698,7 +688,7 @@ ml-framework implements KS test plus PSI for covariate drift detection and appli
 Bonferroni correction for multiple-feature comparisons, consistent with the recommendations
 in their survey.
 
-\subsection{LLMs for Data Analysis}
+\section{LLMs for Data Analysis}
 
 OpenAI's GPT-4 family \cite{openai2023} has demonstrated strong performance on information
 extraction and reasoning tasks involving structured data descriptions.  Narayan et al.\
@@ -717,7 +707,7 @@ descriptions of medical, financial, and operational datasets, giving it sufficie
 knowledge to recognise that a feature named \texttt{discharge\_code} is likely post-hoc
 and that \texttt{future\_usage} encodes future information.
 
-\subsection{Data-Centric AI}
+\section{Data-Centric AI}
 
 The data-centric AI paradigm, popularised by Ng \cite{ng2021}, reorients the ML
 development process from model-centric (``find the best architecture'') to data-centric
@@ -727,6 +717,41 @@ through data cleaning and augmentation alone, finding that data quality improvem
 outperform architecture changes.  ml-framework operationalises this paradigm by providing
 actionable, code-level recommendations that can be directly applied to improve dataset
 quality before training begins.
+
+\section{Summary and Research Gap}
+
+The six areas of work reviewed in this chapter---leakage detection, dataset quality
+assessment, mutual information and feature relevance, distribution shift, LLM-based data
+analysis, and data-centric AI---each address a distinct aspect of the pre-training data
+validation problem.  No single existing open-source tool unifies all of them.  In
+particular:
+
+\begin{itemize}[leftmargin=1.5em]
+\item No tool combines correlation, mutual information, and performance inflation into a
+  \emph{unified per-feature leakage risk score} that aggregates multiple statistical
+  signals into a single calibrated measure.
+\item Statistical methods are inherently blind to \emph{semantic} leakage encoded in
+  feature names (e.g.\ \texttt{discharge\_code}, \texttt{future\_balance}); LLM-based
+  reasoning fills this gap but has not previously been applied to this specific detection
+  problem.
+\item Existing profiling tools (ydata-profiling, Great Expectations, Deepchecks) operate
+  in complementary but non-overlapping design spaces, requiring practitioners to assemble
+  and configure several point tools manually.
+\end{itemize}
+
+ml-framework is designed to close these three gaps through the unified pipeline described in
+Chapter~\ref{ch:development}.
+
+% ════════════════════════════════════════════════════════════════════════════
+\upmchapter{Development}
+\label{ch:development}
+
+This chapter describes the full technical development of \textbf{ml-framework}: its
+architecture and user-facing design (Section~\ref{sec:architecture}), the statistical and
+algorithmic methodology underlying every check (Section~\ref{sec:methodology}), the
+engineering choices behind its implementation (Section~\ref{sec:implementation}), and a
+chronological overview of the seventeen incremental phases through which the system was
+built (Section~\ref{sec:phases}).
 
 \section{System Architecture and Design}
 \label{sec:architecture}
@@ -1159,8 +1184,8 @@ manually labelled benchmark.
 \label{sec:implementation}
 
 This section describes how the architecture of Section~\ref{sec:architecture} is realised
-in code.  The technology stack and testing tools are described separately in
-Chapter~\ref{chap:tools}.
+in code.  The development stack is described in Section~\ref{sec:devtools} and the testing
+and benchmarking tools in Section~\ref{sec:testingtools}.
 
 \subsection{Dataset Generation}
 
@@ -1304,6 +1329,37 @@ Recommendations are sorted by priority in the Streamlit dashboard and the HTML r
 ensuring that the most critical actions appear first.  The SDK method
 \texttt{top\_recommendations()}, with optional \texttt{priority} and \texttt{n} arguments,
 provides programmatic access to filtered recommendations.
+
+\subsection{Tools Used During Development}
+\label{sec:devtools}
+
+The framework is implemented in Python~3.13 and relies on the following core libraries:
+\texttt{pandas} and \texttt{numpy} for data manipulation; \texttt{scipy} and
+\texttt{scikit-learn}~\cite{pedregosa2011} for statistical tests, mutual information, and
+model evaluation; \texttt{xgboost}~\cite{chen2016} for the XGBoost model used in impact
+analysis; \texttt{pyyaml} for configuration loading; \texttt{jinja2} and \texttt{matplotlib}
+for report generation; \texttt{loguru} for structured logging; and \texttt{openai} for the
+optional LLM semantic module.  The interactive web interface is built with \texttt{streamlit}.
+
+Development was carried out in Visual Studio Code with the Python and Jupyter extensions,
+using a \texttt{miniconda} environment (\texttt{ml-framework}) to isolate dependencies.
+Version control and collaboration with the project supervisors were managed through Git and
+GitHub (\url{https://github.com/jaimecano12/ml-framework}).  \texttt{tectonic} was used to
+compile this document and the accompanying conference paper from \LaTeX{} source.
+
+\subsection{Tools Used During Testing and Evaluation}
+\label{sec:testingtools}
+
+All 325 automated tests are written and executed with \texttt{pytest}, organised across 13
+test files as described above.  Quantitative benchmarking against competing tools
+(Chapter~\ref{chap:results}, Section~\ref{sec:benchmark}) required installing and configuring
+\texttt{ydata-profiling}, \texttt{deepchecks}, and \texttt{great-expectations} so that each
+library's checks could be run on the same datasets under comparable conditions.  The optional
+semantic leakage module was evaluated against \texttt{Azure OpenAI} (GPT-4o-mini) via the
+deterministic offline mock described in Section~\ref{sec:semantic_eval}, and the
+demonstration notebook (\texttt{notebooks/framework\_demo.ipynb}) was executed with
+\texttt{jupyter} under the \texttt{ml-framework} kernel to verify that all documented usage
+examples run end to end.
 
 \section{Development Process: Phase Overview}
 \label{sec:phases}
@@ -1995,42 +2051,6 @@ substantially broader range of dataset defects than existing tools while remaini
 transparent and reproducible.
 
 % ════════════════════════════════════════════════════════════════════════════
-\upmchapter{Tools}
-\label{chap:tools}
-
-This chapter lists the tools, libraries, and external services used while building and
-evaluating ml-framework, separating those used during development from those used during
-testing and evaluation.
-
-\section{Tools Used During Development}
-
-The framework is implemented in Python 3.13 and relies on the following core libraries:
-\texttt{pandas} and \texttt{numpy} for data manipulation; \texttt{scipy} and
-\texttt{scikit-learn} \cite{pedregosa2011} for statistical tests, mutual information, and
-model evaluation; \texttt{xgboost} \cite{chen2016} for the XGBoost model used in impact
-analysis; \texttt{pyyaml} for configuration loading; \texttt{jinja2} and \texttt{matplotlib}
-for report generation; \texttt{loguru} for structured logging; and \texttt{openai} for the
-optional LLM semantic module. The interactive web interface is built with
-\texttt{streamlit}.
-
-Development was carried out in Visual Studio Code with the Python and Jupyter extensions,
-using a \texttt{miniconda} environment (\texttt{ml-framework}) to isolate dependencies.
-Version control and collaboration with the project supervisor were managed through Git and
-GitHub (\url{https://github.com/jaimecano12/ml-framework}). \texttt{tectonic} was used to
-compile this document and the accompanying conference paper from LaTeX source.
-
-\section{Tools Used During Testing and Evaluation}
-
-All 325 automated tests are written and executed with \texttt{pytest}, as detailed in
-Section~\ref{sec:implementation}. Quantitative benchmarking against competing tools
-(Section~\ref{sec:benchmark}) required installing and configuring \texttt{ydata-profiling},
-\texttt{deepchecks}, and \texttt{great-expectations} so that each library's checks could be
-run on the same datasets under comparable conditions. The optional semantic leakage module
-was evaluated against \texttt{Azure OpenAI} (GPT-4o-mini), and the demonstration notebook
-(\texttt{notebooks/framework\_demo.ipynb}) was executed with \texttt{jupyter} under the
-\texttt{ml-framework} kernel to verify that all documented usage examples run end to end.
-
-% ════════════════════════════════════════════════════════════════════════════
 \upmchapter{Conclusions and Future Research}
 \label{chap:conclusions}
 
@@ -2518,7 +2538,7 @@ includes a human-readable rationale and, where applicable, a remediation code sn
 trace exactly why a dataset received a given readiness grade.  This aligns with emerging
 regulatory requirements such as the EU AI Act, which mandates documentation and audit trails
 for high-risk AI systems, and with the broader push toward data-centric AI documentation
-standards (Section~\ref{sec:relatedwork}).
+standards (Chapter~\ref{sec:relatedwork}).
 
 \paragraph{LLM-based analysis and data privacy.}  The semantic leakage module sends feature
 names, a small number of sample values, and a short dataset description to a cloud-hosted

@@ -414,3 +414,45 @@ no reproducible/superado, no como causado por el bug).
 2. ✅ **Pulido de redundancia narrativa + auditoría final de cifras** (commit `0b0cdd3`): la explicación completa del caso `boat`/`name` (Titanic) se contaba 3 veces por documento; recortada para que el caso de estudio remita a Discussion. Cifras "29 checks" sueltas sin el framing "checklist" corregidas. Añadidos CD/VAT a Acrónimos (CI se añadió y luego se quitó, ver punto 4).
 3. ✅ **Estilo de cabeceras de tfm.tex** (commit `b4ea399`) → ver sección de estilo visual arriba.
 4. ✅ **Presupuesto bajado y simplificado** (commit `05fdaac`), siguiendo el ejemplo visual de Anexo B del TFG de referencia: tabla única por secciones (en vez de 3 tablas separadas), beneficio industrial calculado sobre CD (no CD+CI, igual que el TFG de referencia), tarifa bajada de €35/h a €15/h (manteniendo las 312h ya justificadas en la Tabla 2.5 de fases), 2 partidas de material (portátil amortizado + tokens API) en vez de 3. **Total: €16,436.92 → €7,086.24.** Acrónimo "CI" eliminado (ya no se usa "Indirect Costs" como concepto propio en la tabla simplificada).
+
+---
+
+## Presentación de defensa (25 min, en inglés) — 2026-07-09 / 2026-07-14
+
+Tres artefactos, todos en la raíz del repo y en GitHub:
+
+| Artefacto | Fuente | Cómo regenerar | Commit |
+|-----------|--------|----------------|--------|
+| `presentation.pdf` (Beamer, 23 slides, 16:9) | `presentation.tex` | `tectonic presentation.tex` | `a4ceca1` |
+| `presentation.pptx` (**versión principal**, 29 slides, editable) | `scripts/build_presentation_pptx.py` (python-pptx) | `python scripts/build_presentation_pptx.py` | `f3d59e8` |
+| `presentation_script.pdf` (guion del presentador, 8 págs.) | `presentation_script.tex` | `tectonic presentation_script.tex` | `69a1504` |
+
+### Estructura (compartida por PPTX y guion, 24:55 total)
+
+1. **Motivation & Objectives** (~5:40) — problema/definición leakage, ejemplo 1.000→0.952, gap de herramientas, 4 contribuciones + KPIs.
+2. **System & Methodology** (~8:10) — arquitectura, 3 interfaces + SDK, catálogo 20 checks, **LRS Eq. + ablation**, LLM semántico + **slide de transparencia del mock**, readiness score.
+3. **Experimental Results** (~4:35) — 12 datasets, gráfica readiness (teal=A, naranja=B), caso Titanic (`name` V=0.999 error, `boat` L=0.74 warning), impact analysis.
+4. **Benchmark** (~2:10) — cobertura 29/29 vs 8–11 (con nota de fairness), tabla detección 4/4 vs 0–1/4.
+5. **Demo & Conclusions** (~5:00) — demo Streamlit en vivo con titanic.csv (3 min, plan B: grabación/HTML), conclusiones, future work, cierre.
+
+### PPTX — sistema de diseño (`scripts/build_presentation_pptx.py`)
+
+- Identidad UPM: `upmBlue #243F60` (estructura), `upmOrange #FF8000` (acentos), teal para resultados positivos.
+- Componentes reutilizables en el script: `chrome()` (cabecera con kicker de sección + pie con nº de slide en chip), `divider()` (separador full-bleed con número gigante y **5 puntos de progreso**), `kpi_card()`, `numbered_card()`, `styled_table()` (cabecera azul + zebra), `code_box()`, `box_node()`+`arrow()` (diagrama de arquitectura con conectores flecha vía XML `a:tailEnd`).
+- Portada y cierre full-bleed azul; agenda con tiempos; gráficas **nativas** de PowerPoint (editables), barras coloreadas por punto (`series.points[i].format.fill`).
+- **Gotchas de python-pptx aprendidos:** el texto de autoshapes se centra por defecto → fijar `par.alignment` SIEMPRE; charts con varios `addplot`/series y `symbolic coords` necesitan `bar shift=0pt` en pgfplots o eje con `minimum_scale/major_unit` explícitos en pptx; `shadow.inherit = False` en toda forma; `number_format="0.0"` en data labels NO cambia el separador decimal (lo impone el locale del PowerPoint del usuario → "98,8" con locale español, aceptable).
+- **Workflow de verificación visual sin abrir PowerPoint a mano:** AppleScript `save pres in POSIX file ... as save as PDF` (PowerPoint instalado en el Mac del usuario) → leer el PDF con la tool Read. Ojo: la primera vez el `open` puede dar timeout de AppleEvent (-1712) pero el export termina igualmente; cerrar presentaciones abiertas antes de regenerar (`close every presentation saving no`).
+
+### Guion (`presentation_script.pdf`)
+
+- Texto hablado **en inglés** (~110–115 wpm), acotaciones escénicas en español en cursiva, chips de tiempo por slide + acumulado.
+- Página 1: chuleta de números clave (20 vs 29, 4/4, 1.000→0.952, boat 0.74/ablation 0.662, name 0.999, 80.6/B, umbrales 0.7/0.9, pesos 0.35/0.35/0.30 y 0.25/0.35/0.25/0.15).
+- Puntos de control: a mitad (slide 16) deberías ir por ~13–14 min; si no, recortar slides 11 y 18 a una frase.
+- Frase de respaldo si falla la demo: *"In the interest of time, let me show you a pre-recorded run."*
+- Anexo: 9 preguntas probables del tribunal con respuesta preparada (pesos LRS→ablation, evaluación mock del LLM, umbrales, escalabilidad Adult 48k, por qué GPT-4o-mini, fairness del benchmark, falsos positivos vs features predictivas, aclaración 20/21/23/29, bug Heart Disease).
+- Gotcha LaTeX: con `helvet`+T1 el carácter `·` literal se renderiza mal ("ů") → usar `$\cdot$`.
+
+### Pendiente (si el usuario lo pide)
+
+- Grabar el vídeo/capturas de respaldo de la demo de Streamlit.
+- Cambiar el separador decimal de las data labels si se presenta con PowerPoint en locale inglés.

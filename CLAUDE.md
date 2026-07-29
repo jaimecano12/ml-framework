@@ -42,7 +42,8 @@ Institución: Illinois Institute of Technology
 | Demo notebook | `notebooks/framework_demo.ipynb` | — | ✅ |
 | Paper | `paper.tex`, `paper.pdf` (15 pages) | — | ✅ |
 
-**Total: 325 tests, 325 passed.**
+**Total: 331 tests, 331 passed** (325 al cierre de Fase 17; +6 en la integración de AWS Bedrock,
+ver sección correspondiente más abajo).
 
 ---
 
@@ -101,14 +102,16 @@ ml-framework/
 │   ├── recommendations.py          — 20 handlers → Recommendation objects (Phase 8)
 │   ├── reporting.py                — HTML generation via Jinja2 + matplotlib (Phase 6)
 │   ├── scoring.py                  — 0-100 ReadinessScore, A-F grade (Phase 10)
-│   ├── semantic_leakage.py         — GPT-4o-mini semantic leakage analysis (Phase 16)
+│   ├── semantic_leakage.py         — LLM semantic leakage analysis, provider-agnostic:
+│   │                                 GPT-4o-mini (Azure) or Claude Haiku 4.5 (AWS Bedrock)
 │   ├── sufficiency.py              — 4 statistical sufficiency checks (Phase 11)
 │   ├── templates/report.html.j2    — HTML template (inline CSS, no deps)
 │   └── utils.py                    — CheckResult, FrameworkReport, Recommendation,
 │                                     DimensionScore, ReadinessScore, load_dataset
-├── tests/                          — 325 tests across 13 test files
+├── tests/                          — 331 tests across 13 test files
 ├── main.py                         — CLI: --config --dataset --output-dir --log-level
 └── requirements.txt                — all deps including streamlit, openai
+                                       (boto3 for AWS Bedrock: optional extra, not pinned here)
 ```
 
 ---
@@ -126,7 +129,7 @@ quality_checks  leakage_checks  feature_analysis sufficiency  drift_checks
                     │                │
                impact_analysis     plugins (custom checks)
                     │
-         [opcional] semantic_leakage (GPT-4o-mini via Azure OpenAI)
+         [opcional] semantic_leakage (GPT-4o-mini/Azure o Claude Haiku 4.5/AWS Bedrock)
                     │
               recommendations → ReadinessScore (0-100, A-F)
                     │
@@ -155,12 +158,27 @@ L(f) = 0.35·ρ(f) + 0.35·Ĩ(f;y) + 0.30·π(f)
   Flag: L(f) ≥ 0.7 → warning; ≥ 0.9 → error
 ```
 
-### `src/semantic_leakage.py` — LLM analysis (Phase 16)
-- Envía feature names + sample values + descripción del dataset a GPT-4o-mini via Azure OpenAI
+### `src/semantic_leakage.py` — LLM analysis (Phase 16, provider-agnostic desde 2026-07-29)
+- Envía feature names + sample values + descripción del dataset a un LLM; dos proveedores intercambiables via `config.yaml::semantic_leakage.provider`:
+  - `azure` (default histórico): GPT-4o-mini, requiere `AZURE_OPENAI_API_KEY` + `AZURE_OPENAI_ENDPOINT`. **Nunca se obtuvieron credenciales para este proyecto.**
+  - `bedrock` (default actual en config.yaml): Claude Haiku 4.5 vía AWS `boto3` bedrock-runtime (`converse()`), requiere credenciales AWS (`aws configure`) + `AWS_REGION`. Model id: `us.anthropic.claude-haiku-4-5-20251001-v1:0` — **ojo:** este modelo concreto exige un *cross-region inference profile* (prefijo `us.`), no el model id "pelado"; si Bedrock devuelve error de on-demand throughput, comprobar con `aws bedrock list-inference-profiles`.
+- Dispatcher interno: `_call_llm(prompt, model_id, provider=...)` → `_call_llm_azure()` o `_call_llm_bedrock()`. Los tests mockean `_call_llm` directamente, así que ambos providers están cubiertos sin romper los tests existentes.
 - Devuelve `SemanticRiskAssessment` por feature: risk_level (none/low/medium/high) + leakage_type (temporal/proxy/post_hoc/indirect)
-- Requiere `AZURE_OPENAI_API_KEY` y `AZURE_OPENAI_ENDPOINT` en env vars
 - Habilitado con `semantic_leakage.enabled: true` en config.yaml (default: false)
-- Degrada gracefully si no hay credenciales
+- Degrada gracefully si no hay credenciales (`EnvironmentError` → `CheckResult` passing con mensaje "skipped")
+
+**Evaluación en vivo (2026-07-29, `scripts/evaluate_semantic_leakage.py --provider bedrock`)** sobre
+`data/semantic_benchmark.json` (30 features) — sustituye el resultado mock anterior (P=1.00/R=0.93/F1=0.963):
+
+| Umbral | P | R | F1 | TP | FP | FN |
+|--------|---|---|----|----|----|----|
+| `medium` (default) | 1.000 | 1.000 | 1.000 | 14 | 0 | 0 |
+| `high` | 0.917 | 0.846 | 0.880 | 11 | 1 | 2 |
+
+3 discrepancias reales en `high` (evidencia genuina del modelo, no artefacto del mock):
+`treatment_count` (gt=medium, pred=high — ya documentada como ambigua), `batch_rejection_rate`
+y `training_completion_post_hire` (gt=high, pred=medium — infravaloradas). Propagado a
+`tfm.tex`, `paper.tex` y la presentación — ver sección dedicada más abajo.
 
 ### `src/utils.py` — Dataclasses compartidos
 - `CheckResult`: `check_name, passed, severity, message, details, affected_columns`
@@ -260,7 +278,7 @@ no confundir ambos números — ver `scripts/benchmark_comparison.py::FEATURE_MA
 | Más datasets + escenarios complejos | `data/raw/` (11 datasets), `generate_data.py` | §5.1, §5.2, Table 3 |
 | Benchmark cuantitativo vs herramientas | `scripts/benchmark_comparison.py` | §6, Fig.3, Tables 5–7 |
 | LLM semantic analysis | `src/semantic_leakage.py` | §4.7, §7 (Discussion) |
-| **LLM quantitative evaluation** | `data/semantic_benchmark.json`, `scripts/evaluate_semantic_leakage.py` | §4.7 Table 8 (P=1.00, R=0.93, F1=0.96) |
+| **LLM quantitative evaluation** | `data/semantic_benchmark.json`, `scripts/evaluate_semantic_leakage.py` | §4.7 Table 8 — evaluación en vivo (Claude Haiku 4.5/Bedrock, 2026-07-29): P=1.00/R=1.00/F1=1.00 (medium), P=0.917/R=0.846/F1=0.880 (high); ya no es un resultado mock |
 | **Real-world case studies** | `scripts/case_studies.py`, `reports/case_studies.json` | §5.5, Table 9 |
 | **Readiness score justification** | `src/scoring.py`, `configs/config.yaml` (scoring block) | §4.6 weight rationale paragraph |
 | **Benchmark fairness discussion** | Paper §6.2 | Párrafo "Scope of comparison" |
@@ -293,8 +311,10 @@ python scripts/download_more_datasets.py
 # Benchmark vs otras herramientas
 python scripts/benchmark_comparison.py
 
-# Evaluación cuantitativa del módulo semántico (mock, no requiere API key)
-python scripts/evaluate_semantic_leakage.py --mock
+# Evaluación cuantitativa del módulo semántico
+python scripts/evaluate_semantic_leakage.py --provider mock      # sin API key
+python scripts/evaluate_semantic_leakage.py --provider azure     # GPT-4o-mini (nunca configurado)
+python scripts/evaluate_semantic_leakage.py --provider bedrock   # Claude Haiku 4.5 (usado en la tesis)
 
 # Case studies reales (Titanic, Adult, German Credit)
 python scripts/case_studies.py
@@ -314,7 +334,8 @@ python -m jupyter lab notebooks/framework_demo.ipynb
 pandas, numpy, scipy, scikit-learn, xgboost
 pyyaml, jinja2, matplotlib, seaborn
 loguru, streamlit, pytest, nbformat, jupyter
-openai                  # LLM semantic analysis (opcional)
+openai                  # LLM semantic analysis, provider=azure (opcional, nunca usado con creds reales)
+boto3                   # LLM semantic analysis, provider=bedrock (opcional; el que sí se usa)
 ydata-profiling         # benchmark comparison
 deepchecks              # benchmark comparison
 great-expectations      # benchmark comparison
@@ -377,6 +398,32 @@ de que el bug de datos NO explica el antiguo número 62/100 (el dataset roto de 
 clase en realidad puntúa 94.2/A con el pipeline actual, así que ese número se trata como
 no reproducible/superado, no como causado por el bug).
 
+### Cierre del caveat semántico: integración de AWS Bedrock (2026-07-29)
+
+El punto 6 de arriba (benchmark semántico "demasiado perfecto") quedó resuelto de raíz:
+el usuario tenía créditos de AWS (nunca credenciales de Azure), así que en vez de esperar
+a conseguir acceso a Azure se integró **AWS Bedrock** como segundo proveedor del módulo LLM.
+
+1. ✅ **Código** (`src/semantic_leakage.py`): dispatcher `provider="azure"|"bedrock"`;
+   `_call_llm_bedrock()` usa `boto3` (`bedrock-runtime.converse()`); Azure intacto. Modelo:
+   Claude Haiku 4.5, id `us.anthropic.claude-haiku-4-5-20251001-v1:0` (requiere *inference
+   profile* con prefijo `us.`, no el model id pelado — gotcha real de Bedrock para modelos
+   recientes). 6 tests nuevos, 325→331 totales.
+2. ✅ **Evaluación real** (`scripts/evaluate_semantic_leakage.py --provider bedrock`) contra
+   las 30 features del benchmark: P/R/F1 = 1.00/1.00/1.00 en `medium` (umbral operativo),
+   0.917/0.846/0.880 en `high`, con 3 discrepancias explicables (ver detalle en la sección
+   de `semantic_leakage.py` más arriba). Ya no es necesario declarar el resultado como
+   "solo validación del arnés" — es un modelo real, independiente, evaluado en vivo.
+3. ✅ **Propagado a `tfm.tex` y `paper.tex`**: abstract, metodología, la sección completa de
+   evaluación semántica (reescrita con tabla de ambos umbrales + tabla de discrepancias),
+   discusión, limitaciones, y Future Work (el ítem "live semantic-module evaluation" se
+   quitó por estar hecho; el future work de "larger benchmark" ahora es explícitamente
+   multi-provider). Conteo de tests 325→331 corregido en todas las tablas/menciones,
+   incluida una inconsistencia aritmética preexistente en la tabla de distribución de tests
+   de `tfm.tex` (no causada por este cambio, pero corregida de paso para las cifras que sí
+   tocaba: fila `test_semantic_leakage.py` y el total).
+4. ✅ **Propagado a la presentación** — ver sección dedicada más abajo.
+
 ---
 
 ## Tesis TFM (tfm.tex)
@@ -417,42 +464,68 @@ no reproducible/superado, no como causado por el bug).
 
 ---
 
-## Presentación de defensa (25 min, en inglés) — 2026-07-09 / 2026-07-14
+## Presentación de defensa (25 min, en inglés) — 2026-07-09 / 2026-07-29
 
 Tres artefactos, todos en la raíz del repo y en GitHub:
 
-| Artefacto | Fuente | Cómo regenerar | Commit |
+| Artefacto | Fuente | Cómo regenerar | Último commit relevante |
 |-----------|--------|----------------|--------|
-| `presentation.pdf` (Beamer, 23 slides, 16:9) | `presentation.tex` | `tectonic presentation.tex` | `a4ceca1` |
-| `presentation.pptx` (**versión principal**, 29 slides, editable) | `scripts/build_presentation_pptx.py` (python-pptx) | `python scripts/build_presentation_pptx.py` | `f3d59e8` |
-| `presentation_script.pdf` (guion del presentador, 8 págs.) | `presentation_script.tex` | `tectonic presentation_script.tex` | `69a1504` |
+| `presentation.pdf` (Beamer, 23 slides, 16:9 — **desactualizado**, ver nota abajo) | `presentation.tex` | `tectonic presentation.tex` | `a4ceca1` |
+| `presentation.pptx` (**versión principal**, 30 slides, editable) | `scripts/build_presentation_pptx.py` (python-pptx) | `python scripts/build_presentation_pptx.py` | `cd4bba9` |
+| `presentation_script.pdf` (guion del presentador, 9 págs.) | `presentation_script.tex` | `tectonic presentation_script.tex` | `cd4bba9` |
 
-### Estructura (compartida por PPTX y guion, 24:55 total)
+⚠️ **`presentation.pdf` (versión Beamer) quedó desactualizada** tras las rondas de edición del
+2026-07-29 (slide de contexto ML + resultados reales de Bedrock) — solo se mantuvo el PPTX y su
+guion. Si se necesita, regenerar `presentation.tex` a mano con el mismo contenido antes de compilar.
+El propio fichero `presentation.pdf` además aparece borrado del working tree (pendiente de decisión
+del usuario, no relacionado con el contenido).
 
-1. **Motivation & Objectives** (~5:40) — problema/definición leakage, ejemplo 1.000→0.952, gap de herramientas, 4 contribuciones + KPIs.
-2. **System & Methodology** (~8:10) — arquitectura, 3 interfaces + SDK, catálogo 20 checks, **LRS Eq. + ablation**, LLM semántico + **slide de transparencia del mock**, readiness score.
-3. **Experimental Results** (~4:35) — 12 datasets, gráfica readiness (teal=A, naranja=B), caso Titanic (`name` V=0.999 error, `boat` L=0.74 warning), impact analysis.
-4. **Benchmark** (~2:10) — cobertura 29/29 vs 8–11 (con nota de fairness), tabla detección 4/4 vs 0–1/4.
-5. **Demo & Conclusions** (~5:00) — demo Streamlit en vivo con titanic.csv (3 min, plan B: grabación/HTML), conclusiones, future work, cierre.
+### Estructura (compartida por PPTX y guion, ~25:15 total)
+
+1. **Motivation & Objectives** (~7:00) — agenda, **slide de contexto "Why Machine Learning Matters Today"** (KPIs de adopción/mercado/coste de mala calidad de datos + gráfica de adopción 2022-2025, fuentes McKinsey/Statista/Gartner), problema/definición leakage, ejemplo 1.000→0.952, gap de herramientas, 4 contribuciones + KPIs.
+2. **System & Methodology** (~7:40) — arquitectura, 3 interfaces + SDK, catálogo 20 checks, **LRS Eq. + ablation**, LLM semántico + **slide de resultados reales de evaluación en vivo** (ya no hay caveat de mock), readiness score.
+3. **Experimental Results** (~3:40) — 12 datasets, gráfica readiness (teal=A, naranja=B), caso Titanic (`name` V=0.999 error, `boat` L=0.74 warning), impact analysis.
+4. **Benchmark** (~1:50) — cobertura 29/29 vs 8–11 (con nota de fairness), tabla detección 4/4 vs 0–1/4.
+5. **Demo & Conclusions** (~5:05) — demo Streamlit en vivo con titanic.csv (3 min, plan B: grabación/HTML), conclusiones, future work (ya no incluye "live LLM evaluation", sustituido por "larger multi-provider benchmark"), cierre.
+
+### Slide de contexto "Why Machine Learning Matters Today" (añadida 2026-07-29)
+
+Slide 4 del deck, con estadísticas reales verificadas por búsqueda web (no inventadas, dado que
+se presentan ante un tribunal académico): adopción de IA **88% en 2025** vs. 50% en 2022
+(McKinsey State of AI survey), mercado global de IA **$260B → $1.2T+** (2025→2030, Statista
+Market Insights), coste medio de mala calidad de datos **$12.9M/año/organización** (Gartner).
+Gráfica nativa de barras (2022-2025, última barra en naranja) + nota de fuentes al pie. El
+tiempo se compensó recortando la narración (no el contenido visual) de 5 slides que lo permitían
+sin perder valor: Gap in Tools, Objectives, Architecture, Check Catalog, Experimental Setup.
+
+### Módulo semántico: de "honest caveat" a resultado real (2026-07-29)
+
+La slide que antes se llamaba "Semantic Module: Evaluation and an Honest Caveat" (bloque rojo de
+transparencia) pasó a ser **"Semantic Module: Live Evaluation Results"**: dos tablas (P/R/F1 por
+umbral + las 3 discrepancias reales del modelo) en vez del caveat, sin bloque rojo. Ver la sección
+de integración de AWS Bedrock más arriba para los números y el porqué. El anexo de Q&A del guion
+también se actualizó: la pregunta "¿La evaluación del módulo LLM es real?" pasó de "No" a "Sí".
 
 ### PPTX — sistema de diseño (`scripts/build_presentation_pptx.py`)
 
 - Identidad UPM: `upmBlue #243F60` (estructura), `upmOrange #FF8000` (acentos), teal para resultados positivos.
 - Componentes reutilizables en el script: `chrome()` (cabecera con kicker de sección + pie con nº de slide en chip), `divider()` (separador full-bleed con número gigante y **5 puntos de progreso**), `kpi_card()`, `numbered_card()`, `styled_table()` (cabecera azul + zebra), `code_box()`, `box_node()`+`arrow()` (diagrama de arquitectura con conectores flecha vía XML `a:tailEnd`).
 - Portada y cierre full-bleed azul; agenda con tiempos; gráficas **nativas** de PowerPoint (editables), barras coloreadas por punto (`series.points[i].format.fill`).
-- **Gotchas de python-pptx aprendidos:** el texto de autoshapes se centra por defecto → fijar `par.alignment` SIEMPRE; charts con varios `addplot`/series y `symbolic coords` necesitan `bar shift=0pt` en pgfplots o eje con `minimum_scale/major_unit` explícitos en pptx; `shadow.inherit = False` en toda forma; `number_format="0.0"` en data labels NO cambia el separador decimal (lo impone el locale del PowerPoint del usuario → "98,8" con locale español, aceptable).
+- **Gotchas de python-pptx aprendidos:** el texto de autoshapes se centra por defecto → fijar `par.alignment` SIEMPRE; charts con varios `addplot`/series y `symbolic coords` necesitan `bar shift=0pt` en pgfplots o eje con `minimum_scale/major_unit` explícitos en pptx; `shadow.inherit = False` en toda forma; `number_format="0.0"` en data labels NO cambia el separador decimal (lo impone el locale del PowerPoint del usuario → "98,8" con locale español, aceptable); para gráficas de porcentaje usar `number_format='0"%"'` (formato Excel con literal entre comillas) en vez de multiplicar por 100.
 - **Workflow de verificación visual sin abrir PowerPoint a mano:** AppleScript `save pres in POSIX file ... as save as PDF` (PowerPoint instalado en el Mac del usuario) → leer el PDF con la tool Read. Ojo: la primera vez el `open` puede dar timeout de AppleEvent (-1712) pero el export termina igualmente; cerrar presentaciones abiertas antes de regenerar (`close every presentation saving no`).
 
 ### Guion (`presentation_script.pdf`)
 
 - Texto hablado **en inglés** (~110–115 wpm), acotaciones escénicas en español en cursiva, chips de tiempo por slide + acumulado.
-- Página 1: chuleta de números clave (20 vs 29, 4/4, 1.000→0.952, boat 0.74/ablation 0.662, name 0.999, 80.6/B, umbrales 0.7/0.9, pesos 0.35/0.35/0.30 y 0.25/0.35/0.25/0.15).
-- Puntos de control: a mitad (slide 16) deberías ir por ~13–14 min; si no, recortar slides 11 y 18 a una frase.
+- Página 1: chuleta de números clave, incluyendo el bloque nuevo de contexto ML (88%/2022→2025, $260B→$1.2T+, $12.9M) y el bloque de evaluación semántica en vivo (medium 1.00/1.00/1.00, high 0.917/0.846/0.880).
+- Puntos de control: a mitad (slide 17) deberías ir por ~14–15 min; si no, comprimir slides 11 (Interfaces) y 24 (Feature Coverage) a una frase, o recortar la demo a 2 min.
 - Frase de respaldo si falla la demo: *"In the interest of time, let me show you a pre-recorded run."*
-- Anexo: 9 preguntas probables del tribunal con respuesta preparada (pesos LRS→ablation, evaluación mock del LLM, umbrales, escalabilidad Adult 48k, por qué GPT-4o-mini, fairness del benchmark, falsos positivos vs features predictivas, aclaración 20/21/23/29, bug Heart Disease).
+- Anexo: 10 preguntas probables del tribunal con respuesta preparada (pesos LRS→ablation, evaluación **real** del LLM vía Bedrock, umbrales, escalabilidad Adult 48k, por qué GPT-4o-mini/Claude y no un modelo local, fairness del benchmark, falsos positivos vs features predictivas, aclaración 20/21/23/29, bug Heart Disease, por qué citar cifras de mercado en una tesis técnica).
 - Gotcha LaTeX: con `helvet`+T1 el carácter `·` literal se renderiza mal ("ů") → usar `$\cdot$`.
+- Las 3 frases tachadas a mano por el usuario en una revisión del PDF se eliminaron del `.tex` (mención IIT/ETSIT en la portada, "twenty-five" en la agenda, "reproducibility" en la slide del problema) — si se vuelve a anotar el PDF a mano, avisar para repetir el proceso.
 
 ### Pendiente (si el usuario lo pide)
 
 - Grabar el vídeo/capturas de respaldo de la demo de Streamlit.
 - Cambiar el separador decimal de las data labels si se presenta con PowerPoint en locale inglés.
+- Regenerar `presentation.pdf` (Beamer) si se quiere mantener sincronizado con el PPTX, o decidir retirarlo.

@@ -113,7 +113,7 @@ semantic_leakage:
   enabled: false              # set true once provider credentials are configured
   provider: bedrock           # "azure" (GPT-4o-mini) or "bedrock" (Claude 3.5 Haiku)
   deployment: gpt-4o-mini    # Azure OpenAI deployment name (used when provider: azure)
-  model_id: anthropic.claude-3-5-haiku-20241022-v1:0   # Bedrock model id (used when provider: bedrock)
+  model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0   # Bedrock model id (used when provider: bedrock)
   max_features: 30            # max features to send to LLM
   risk_threshold: medium      # flag features with risk >= this level
   # provider: azure   -> AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT env vars

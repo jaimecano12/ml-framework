@@ -175,7 +175,7 @@ def evaluate(benchmark: list[dict], provider: str) -> dict:
             prompt = _build_user_prompt(feat_names, "target", context, sample_vals)
             if provider == "bedrock":
                 model_id = os.environ.get(
-                    "BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0"
+                    "BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"
                 )
             else:
                 model_id = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")

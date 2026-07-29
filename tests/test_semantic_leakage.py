@@ -181,7 +181,7 @@ class TestBedrockProvider:
     """Phase 17 follow-up: AWS Bedrock (Claude) as an alternative provider."""
 
     _cfg = {"enabled": True, "provider": "bedrock",
-            "model_id": "anthropic.claude-3-5-haiku-20241022-v1:0",
+            "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
             "max_features": 30, "risk_threshold": "medium"}
 
     @patch("src.semantic_leakage._call_llm", return_value=_MOCK_LLM_RESPONSE)
@@ -195,7 +195,7 @@ class TestBedrockProvider:
     def test_details_record_bedrock_provider_and_model(self, mock_llm, df_sample: pd.DataFrame):
         r = analyse_semantic_leakage(df_sample, "target", self._cfg)
         assert r.details["provider"] == "bedrock"
-        assert r.details["model_id"] == "anthropic.claude-3-5-haiku-20241022-v1:0"
+        assert r.details["model_id"] == "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
     def test_skips_gracefully_when_no_aws_credentials(self, df_sample: pd.DataFrame):
         import botocore.exceptions
@@ -217,7 +217,7 @@ class TestBedrockProvider:
                 "output": {"message": {"content": [{"text": _MOCK_LLM_RESPONSE}]}}
             }
             mock_get_client.return_value = mock_client
-            result = _call_llm_bedrock("some prompt", "anthropic.claude-3-5-haiku-20241022-v1:0")
+            result = _call_llm_bedrock("some prompt", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
         assert result == _MOCK_LLM_RESPONSE
 
 
@@ -228,7 +228,7 @@ class TestProviderDispatch:
     def test_call_llm_dispatches_to_bedrock(self, mock_bedrock):
         from src.semantic_leakage import _call_llm
 
-        result = _call_llm("prompt", "anthropic.claude-3-5-haiku-20241022-v1:0", provider="bedrock")
+        result = _call_llm("prompt", "us.anthropic.claude-haiku-4-5-20251001-v1:0", provider="bedrock")
         assert result == "mocked-bedrock"
         mock_bedrock.assert_called_once()
 

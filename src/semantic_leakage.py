@@ -14,7 +14,7 @@ Setup (Azure — default):
 Setup (AWS Bedrock — set ``provider: bedrock`` in config):
     aws configure   # or export AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
     export AWS_REGION="us-east-1"
-    export BEDROCK_MODEL_ID="anthropic.claude-3-5-haiku-20241022-v1:0"
+    export BEDROCK_MODEL_ID="us.anthropic.claude-haiku-4-5-20251001-v1:0"
     Requires model access enabled for Anthropic Claude in the Bedrock
     console (Model access) and the ``boto3`` package installed.
 
@@ -266,7 +266,7 @@ def analyse_semantic_leakage(
     if provider == "bedrock":
         model_id: str = config.get(
             "model_id",
-            os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0"),
+            os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
         )
     else:
         model_id = config.get("deployment", os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini"))

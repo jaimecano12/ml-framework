@@ -64,7 +64,7 @@ coste medio mala calidad de datos \keynum{\$12.9M}/año/organización.
 
 \textit{Núcleo de la tesis:}
 \keynum{20} checks / \keynum{5} dimensiones (el \keynum{29} es el \emph{checklist} del benchmark, no lo mezcles) $\cdot$
-\keynum{12} datasets (6+6) $\cdot$ \keynum{325} tests $\cdot$
+\keynum{12} datasets (6+6) $\cdot$ \keynum{331} tests $\cdot$
 \keynum{4/4} escenarios de leakage vs.\ 0--1/4 $\cdot$
 accuracy \keynum{1.000 $\rightarrow$ 0.952} ($\Delta$ = $-$0.048) $\cdot$
 \texttt{boat} $\mathcal{L}$ = \keynum{0.74} (ablation: cae a 0.662 con esquema correlation-heavy) $\cdot$
@@ -72,8 +72,14 @@ accuracy \keynum{1.000 $\rightarrow$ 0.952} ($\Delta$ = $-$0.048) $\cdot$
 umbral warning \keynum{0.7} / error \keynum{0.9} $\cdot$
 pesos LRS \keynum{0.35/0.35/0.30} $\cdot$ pesos readiness \keynum{0.25/0.35/0.25/0.15}.
 
+\textit{Módulo semántico (evaluación en vivo, Claude Haiku 4.5 / AWS Bedrock):}
+umbral \texttt{medium} P/R/F1 = \keynum{1.00/1.00/1.00} $\cdot$ umbral \texttt{high}
+P/R/F1 = \keynum{0.917/0.846/0.880} $\cdot$ 3 discrepancias reales en \texttt{high}
+(\texttt{treatment\_count}, \texttt{batch\_rejection\_rate},
+\texttt{training\_completion\_post\_hire}).
+
 \textbf{Ritmo:} $\approx$110--115 palabras/min. Punto de control: en la slide 17
-(``From 20 Checks to One Number'') deberías ir por $\approx$14 min. Si vas por
+(``From 20 Checks to One Number'') deberías ir por $\approx$14--15 min. Si vas por
 encima, comprime las slides 11 (Interfaces) y 24 (Feature Coverage) a una frase,
 o recorta la narración de la demo a 2 min en vez de 3.
 \end{mdframed}
@@ -163,11 +169,11 @@ line, a Python SDK, and a web application. Two: a unified Leakage Risk Score
 combining three statistical signals into one flaggable number per feature.
 Three: semantic leakage analysis with a large language model, for leaks
 statistics cannot see. And four: a quantitative benchmark against those three
-tools. Everything is validated on twelve datasets, covered by 325 unit tests,
+tools. Everything is validated on twelve datasets, covered by 331 unit tests,
 and the code is open source.}
 
 % ======================================================================
-\section*{\color{upmBlue}Part 2 --- System \& Methodology (\normalfont$\approx$7:25)}
+\section*{\color{upmBlue}Part 2 --- System \& Methodology (\normalfont$\approx$7:40)}
 
 \slide{9}{Divider 02}{0:10}{7:10}
 {Transición.}
@@ -231,23 +237,30 @@ Imagine an ICU mortality dataset with a feature called
 \emph{discharge\_date}. Statistically it may look innocent --- but
 semantically it is obvious: you only know the discharge date after the
 outcome. No statistical test reads feature names. So the framework sends
-feature names, sample values, and a dataset description to GPT-4o-mini, which
+feature names, sample values, and a dataset description to a large language
+model --- either GPT-4o-mini through Azure, or Claude Haiku 4.5 through AWS
+Bedrock --- which
 returns a risk level, a leakage type --- temporal, proxy, post-hoc or indirect
 --- and a natural-language rationale for each feature. The module is optional,
-disabled by default, and degrades gracefully if no credentials are present.}
+provider-agnostic, disabled by default, and degrades gracefully if no
+credentials are present.}
 
-\slide{16}{Semantic Module: Evaluation and an Honest Caveat}{0:45}{13:40}
-{Di el caveat TÚ, con seguridad. Es un punto fuerte, no una debilidad.}
-{To evaluate it, I built a manually labelled thirty-feature benchmark, where
-the module reaches a precision of 1.0 and a recall of 0.93. But I want to be
-fully transparent: these figures validate the evaluation harness using a
-deterministic mock analyzer, because Azure credentials were unavailable at
-evaluation time --- they are not a measurement of the live model. This is
-stated explicitly in the thesis, and a live evaluation is the top-priority
-item of future work.}
+\slide{16}{Semantic Module: Live Evaluation Results}{1:00}{13:55}
+{Ya NO es un caveat, es un resultado. Dilo con la misma seguridad que antes,
+pero ahora con orgullo en vez de disculpa. Señala primero la fila medium,
+luego la tabla de discrepancias.}
+{To evaluate it, I built a manually labelled thirty-feature benchmark and ran
+it live against Claude Haiku 4.5 through AWS Bedrock --- not a mock. At the
+default threshold, medium, the model separates all fourteen risky features
+from the sixteen safe ones with zero errors. At the stricter high threshold
+it makes three disagreements: two recall misses on genuine proxy and
+temporal features, and one case where it flags \emph{treatment\_count} ---
+already documented as ambiguous --- more cautiously than labelled. Because
+this is a live, independent model, these disagreements are real evidence of
+its reasoning, not an artifact of a mock that already knew the answers.}
 
-\slide{17}{From 20 Checks to One Number}{0:45}{14:25}
-{Chequeo de tiempo: deberías ir por $\approx$14 min aquí.}
+\slide{17}{From 20 Checks to One Number}{0:45}{14:40}
+{Chequeo de tiempo: deberías ir por $\approx$14--15 min aquí.}
 {Finally, all results aggregate into a readiness score from zero to one
 hundred. Each dimension starts at one hundred and loses fifteen points per
 error and five per warning; the dimensions are then combined with these
@@ -259,11 +272,11 @@ configurable in the YAML file.}
 % ======================================================================
 \section*{\color{upmBlue}Part 3 --- Experimental Results (\normalfont$\approx$3:40)}
 
-\slide{18}{Divider 03}{0:10}{14:35}
+\slide{18}{Divider 03}{0:10}{14:50}
 {Transición.}
 {Does it work? Let us look at the evidence.}
 
-\slide{19}{Experimental Setup: 12 Datasets}{0:30}{15:05}
+\slide{19}{Experimental Setup: 12 Datasets}{0:30}{15:20}
 {Izquierda sintéticos, derecha reales. Frase clave: planted vs.\ surprises.
 Ve rápido, la slide se explica sola.}
 {I evaluated the framework on twelve datasets: six synthetic, with defects I
@@ -272,7 +285,7 @@ Titanic to the 48,000-row Adult Census. The synthetic sets verify the
 framework detects what we planted; the real sets verify it finds surprises
 in the wild.}
 
-\slide{20}{Readiness Scores Discriminate as Designed}{1:00}{16:05}
+\slide{20}{Readiness Scores Discriminate as Designed}{1:00}{16:20}
 {Señala las dos barras naranjas.}
 {And it discriminates exactly as designed. The clean control scores 98.8,
 grade A. The dirty dataset --- full of quality noise but with no leakage ---
@@ -282,7 +295,7 @@ Titanic at 80.6. The four additional UCI datasets all score in the nineties
 --- with Wine Quality pulled down to 88.6 by fifteen percent duplicate rows.
 Quality noise costs points; leakage costs grades.}
 
-\slide{21}{Case Study: Titanic}{1:15}{17:20}
+\slide{21}{Case Study: Titanic}{1:15}{17:35}
 {La anécdota estrella de la defensa. Cuéntala con calma y algo de humor.}
 {Why does Titanic --- the most famous teaching dataset in the world --- get a
 B? The framework found two real leaks. First, \emph{name}: with 1,300 unique
@@ -295,7 +308,7 @@ this column included --- and it takes the framework thirty seconds to prove
 it is textbook post-hoc leakage. Neither leak is caught by any of the three
 baseline tools.}
 
-\slide{22}{Quantifying the Damage: Impact Analysis}{0:45}{18:05}
+\slide{22}{Quantifying the Damage: Impact Analysis}{0:45}{18:20}
 {Cierra el círculo con el ejemplo del principio.}
 {The impact analysis module closes the loop on my opening example. It retrains
 the same cross-validated model with and without the flagged features. On the
@@ -307,11 +320,11 @@ columns.}
 % ======================================================================
 \section*{\color{upmBlue}Part 4 --- Benchmark (\normalfont$\approx$1:50)}
 
-\slide{23}{Divider 04}{0:10}{18:15}
+\slide{23}{Divider 04}{0:10}{18:30}
 {Transición.}
 {How does this compare against the tools practitioners already use?}
 
-\slide{24}{Feature Coverage vs.\ Three Established Tools}{0:50}{19:05}
+\slide{24}{Feature Coverage vs.\ Three Established Tools}{0:50}{19:20}
 {Sé escrupuloso con el framing: checklist $\neq$ pipeline; menciona fairness.}
 {I built a 29-item comparison checklist --- note this is a cross-tool
 measurement instrument, more granular than my own 20-check pipeline; the two
@@ -321,7 +334,7 @@ baselines were designed for profiling and validation, not leakage --- so this
 chart measures scope, not quality, and the full checklist is published with
 the benchmark code so anyone can scrutinize it.}
 
-\slide{25}{Leakage Detection --- the Decisive Result}{0:50}{19:55}
+\slide{25}{Leakage Detection --- the Decisive Result}{0:50}{20:10}
 {Esta tabla es el resultado decisivo: dilo explícitamente.}
 {The decisive result is this one. Four constructed leakage scenarios, every
 tool with its default configuration. My framework detects all four
@@ -332,11 +345,11 @@ for it. This is precisely the gap the thesis set out to fill.}
 % ======================================================================
 \section*{\color{upmBlue}Part 5 --- Demo \& Conclusions (\normalfont$\approx$5:05)}
 
-\slide{26}{Divider 05}{0:05}{20:00}
+\slide{26}{Divider 05}{0:05}{20:15}
 {Transición rápida; abre ya la pestaña del navegador con Streamlit.}
 {Let me show you the framework in action.}
 
-\slide{27}{Live Demo: Streamlit}{3:00}{23:00}
+\slide{27}{Live Demo: Streamlit}{3:00}{23:15}
 {DEMO EN VIVO. Ten la app ya lanzada y titanic.csv en el escritorio.
 Guion de respaldo si falla: enseña el vídeo grabado o el informe HTML y di:
 ``In the interest of time, let me show you a pre-recorded run.''}
@@ -349,27 +362,29 @@ each with an explanation and a suggested fix --- and here is the exact pandas
 line to drop the column. Finally, the full HTML report can be downloaded and
 shared with the team.}
 
-\slide{28}{Conclusions}{1:00}{24:00}
+\slide{28}{Conclusions}{1:00}{24:15}
 {Una frase por tarjeta, con energía de cierre.}
 {To conclude. First: dataset quality assessment and leakage detection can be
 automated end to end --- one config file plus one CSV gives you a scored,
 explained, and actionable verdict. Second: the unified risk score detects
 leaks that no single statistic catches, with ablation-backed weights --- four
 out of four benchmark scenarios versus at most one for existing tools. Third:
-LLMs extend detection to semantic leaks that are invisible to statistics.
+LLMs extend detection to semantic leaks that are invisible to statistics ---
+and a live evaluation against Claude Haiku 4.5 confirms it actually works.
 And fourth: the framework found real, previously unflagged issues in classic
 public datasets. On the engineering side: seventeen development phases,
-fourteen modules, and 325 tests, all passing.}
+fourteen modules, and 331 tests, all passing.}
 
-\slide{29}{Future Work}{0:40}{24:40}
-{Rápido; el punto 1 conecta con el caveat del slide 16.}
-{Four directions ahead. The immediate priority is the live LLM evaluation ---
-the harness is ready, only credentials are missing. Then: broadening the
+\slide{29}{Future Work}{0:40}{24:55}
+{Rápido; el punto 1 conecta con el resultado del slide 16.}
+{Four directions ahead. First, a larger, multi-provider benchmark, now
+systematically comparing GPT-4o-mini against Claude Haiku 4.5 and other
+models. Then: broadening the
 leakage taxonomy to group and preprocessing leakage; CI/CD integration, using
 the readiness score as a merge gate --- the SDK already makes this a few lines
 of code; and learning flagging thresholds from data instead of fixing them.}
 
-\slide{30}{Thank you}{0:20}{25:00}
+\slide{30}{Thank you}{0:20}{25:15}
 {Pausa, sonríe, no salgas corriendo del slide.}
 {The code, the datasets, and the full benchmark are available on GitHub.
 Thank you very much for your attention --- I will be happy to take your
@@ -389,11 +404,13 @@ correlation: it reproduces a false negative on Titanic's \emph{boat}
 (0.662, below the 0.7 threshold). All weights are configurable in the YAML.
 
 \item[¿La evaluación del módulo LLM es real?]
-\textit{(EN)} No --- and the thesis says so explicitly. The P/R/F1 figures
-validate the evaluation harness with a deterministic mock, because Azure
-credentials were unavailable. The architecture and parsing are fully tested
-(33 unit tests). A live evaluation is the first item of future work; the
-harness runs it with a one-flag change.
+\textit{(EN)} Yes --- it's a live call to Claude Haiku 4.5 through AWS
+Bedrock, not the deterministic mock. At the framework's default threshold,
+medium, it's a perfect 1.00/1.00/1.00 on the 30-feature benchmark; at the
+stricter high threshold it's 0.917/0.846/0.880, with three explainable
+disagreements. I report both thresholds precisely so the perfect number
+isn't read as cherry-picked. Azure OpenAI credentials were never obtained
+for this project; AWS credits were.
 
 \item[¿Por qué el umbral 0.95 en target\_leakage y 0.7/0.9 en LRS?]
 \textit{(EN)} They are conservative defaults chosen to keep false positives
@@ -407,12 +424,13 @@ single-feature models in $\pi(f)$. The largest dataset evaluated is Adult
 Census, 48,842 rows, which runs the full pipeline in well under a minute on a
 laptop. Runtime figures are in the benchmark chapter.
 
-\item[¿Por qué GPT-4o-mini y no un modelo local?]
-\textit{(EN)} It was the best cost/quality point available through the
-institutional Azure deployment, and the module only sends feature names,
-a handful of sample values, and a description --- not the dataset. The
-interface is provider-agnostic: any chat-completion endpoint can be plugged
-in, including local models.
+\item[¿Por qué GPT-4o-mini / Claude y no un modelo local?]
+\textit{(EN)} Cost and quality: both are cheap, fast small models, and the
+module only sends feature names, a handful of sample values, and a
+description --- not the dataset. The dispatch layer is genuinely
+provider-agnostic now, not just in theory: it already supports two
+independent cloud providers, Azure OpenAI and AWS Bedrock, selected by a
+single config key, and a local endpoint would plug into the same interface.
 
 \item[¿No es injusto el benchmark 29/29 contra herramientas de otro propósito?]
 \textit{(EN)} That is exactly why the thesis includes a fairness note: the

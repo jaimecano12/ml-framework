@@ -131,7 +131,8 @@ sufficiency, distributional drift, and impact quantification.  The framework
 introduces a novel \emph{unified leakage risk score} that combines Pearson
 correlation, normalised mutual information, and per-feature performance
 inflation into a single interpretable metric, and a \emph{semantic leakage
-module} that employs a large language model (GPT-4o-mini) to identify implicit
+module} that employs a large language model (GPT-4o-mini via Azure OpenAI, or
+Claude Haiku 4.5 via AWS Bedrock) to identify implicit
 future-information features that purely statistical methods cannot detect.
 Experiments on six real-world and six synthetic datasets demonstrate that
 ml-framework detects \textbf{4/4} constructed leakage scenarios using its
@@ -197,7 +198,8 @@ to address these gaps.  Our main contributions are:
         mutual information, and per-feature performance inflation into a single
         $[0,1]$ metric, providing a more principled signal than any individual
         heuristic.
-  \item A \textbf{semantic leakage analysis module} driven by GPT-4o-mini
+  \item A \textbf{provider-agnostic semantic leakage analysis module} (GPT-4o-mini
+        or Claude Haiku 4.5)
         that detects implicit future-information features based on feature
         names and dataset descriptions---leakage that statistical methods
         cannot detect.
@@ -260,7 +262,8 @@ The use of large language models for structured data tasks has grown rapidly.
 Narayan et al.~\cite{narayan2022can} showed that GPT-3 can perform entity
 matching and data imputation with competitive accuracy.  Sui et al.~\cite{sui2023tap4llm}
 explored LLM-assisted table understanding.  Our semantic leakage module
-extends this line of work by tasking GPT-4o-mini with a novel role:
+extends this line of work by tasking a general-purpose LLM (GPT-4o-mini or
+Claude Haiku 4.5) with a novel role:
 identifying features whose \emph{names} implicitly encode future or
 post-hoc information---a task that requires domain knowledge and semantic
 reasoning unavailable to purely statistical methods.
@@ -410,8 +413,10 @@ regression and random forest models, plus
 XGBoost~\cite{chen2016xgboost} for the gradient-boosted model used in
 impact analysis (Section~\ref{sec:methodology}).  All UCI/OpenML
 evaluation datasets~\cite{dua2017uci} were retrieved through OpenML.  The
-semantic leakage module is built on GPT-4o-mini, from the GPT-4 model
-family~\cite{openai2023gpt4}, accessed via Azure OpenAI.
+semantic leakage module supports two interchangeable providers: GPT-4o-mini,
+from the GPT-4 model
+family~\cite{openai2023gpt4}, accessed via Azure OpenAI, and Claude Haiku 4.5,
+accessed via AWS Bedrock.
 
 \begin{table}[!h]
 \centering
@@ -430,7 +435,7 @@ family~\cite{openai2023gpt4}, accessed via Azure OpenAI.
 \texttt{impact\_analysis} & Baseline vs.\ cleaned cross-validation delta \\
 \texttt{scoring} & Weighted readiness score (0--100) and letter grade (A--F) \\
 \texttt{recommendations} & 20 handlers mapping checks to code-level suggestions \\
-\texttt{semantic\_leakage} & GPT-4o-mini semantic leakage analysis \\
+\texttt{semantic\_leakage} & Provider-agnostic LLM semantic leakage analysis (Azure/Bedrock) \\
 \texttt{reporting} & Jinja2 HTML report with embedded matplotlib figures \\
 \texttt{checker} & \texttt{DatasetChecker} Python SDK facade \\
 \texttt{plugins} & \texttt{@register\_check} decorator and module loader \\
@@ -660,64 +665,70 @@ in \texttt{config.yaml}.
 Statistical methods cannot detect \emph{semantic} leakage, where a feature
 name itself reveals post-hoc or future information
 (e.g.\ \texttt{discharge\_code}, \texttt{future\_usage}).  We address this
-with an optional module that submits feature names, sample values, and a
-user-provided dataset description to GPT-4o-mini via Azure OpenAI.  The model
+with an optional, provider-agnostic module that submits feature names, sample values, and a
+user-provided dataset description to a large language model---GPT-4o-mini via
+Azure OpenAI, or Claude Haiku 4.5 via AWS Bedrock.  The model
 classifies each feature into one of four risk levels (\texttt{none},
 \texttt{low}, \texttt{medium}, \texttt{high}) and four leakage types
 (\texttt{temporal}, \texttt{proxy}, \texttt{post\_hoc}, \texttt{indirect}).
-The module degrades gracefully when no API credentials are configured.
+The module degrades gracefully when no provider credentials are configured.
 
-\paragraph{Evaluation harness and its current limitation.}
+\paragraph{Live evaluation.}
 To evaluate the module systematically, we constructed a benchmark of 30
 manually labelled features drawn from five realistic dataset contexts
 (hospital readmission, loan default, customer churn, manufacturing defect,
 and employee promotion prediction).  Each feature carries a ground-truth
 risk level and leakage type.  The benchmark includes 13 high-risk, 1
 medium-risk, and 16 safe features, covering temporal, post-hoc, and proxy
-leakage patterns.  The repository ships both a live mode, which calls
-GPT-4o-mini through Azure OpenAI, and a \emph{deterministic offline mock}
-that pattern-matches feature-name substrings (e.g.\ \texttt{discharge\_},
-\texttt{future\_}) without any API call, so the harness and its metrics can
-be exercised in CI without credentials or cost.  \textbf{The results below
-were produced by this offline mock, not by a live GPT-4o-mini call}, because
-no API credentials were available at the time of writing this revision.  We
-report them here only to validate that the thresholding and
-precision/recall/F\textsubscript{1} computation in
-\texttt{scripts/evaluate\_semantic\_leakage.py} behave correctly; they are
-\emph{not} evidence of GPT-4o-mini's real-world semantic-leakage accuracy.
-Because the mock's patterns were written with knowledge of the benchmark's
-feature names, a near-perfect score is expected by construction and should
-not be read as a measure of model quality.  We evaluate at two operating
+leakage patterns.  The repository ships three modes: a live call to
+GPT-4o-mini through Azure OpenAI, a live call to Claude Haiku 4.5 through AWS
+Bedrock, and a \emph{deterministic offline mock} that pattern-matches
+feature-name substrings without any API call, retained only to exercise the
+harness in CI without credentials or cost.  \textbf{The results below were
+produced by a live call to Claude Haiku 4.5 via AWS Bedrock}---not the
+offline mock---since Azure OpenAI credentials were never obtained for this
+project while AWS credits were available.  We evaluate at two operating
 thresholds---``high'' (flag only high-risk features) and ``medium'' (flag
 medium and above)---and report binary precision, recall, and
 F\textsubscript{1}.
 
 \begin{table}[!h]
 \centering
-\caption{Evaluation-harness sanity check on the 30-feature benchmark, run in
-  deterministic offline-mock mode (Section~\ref{sec:methodology}); a live
-  GPT-4o-mini evaluation is listed as immediate future work in
-  Section~\ref{sec:discussion}.}
+\caption{Live evaluation of the semantic leakage module (Claude Haiku 4.5,
+  AWS Bedrock) on the 30-feature benchmark.}
 \label{tab:semantic_eval}
 \scriptsize
 \begin{tabular}{lrrrrrr}
 \toprule
 \textbf{Threshold} & \textbf{P} & \textbf{R} & \textbf{F\textsubscript{1}} & \textbf{TP} & \textbf{FP} & \textbf{FN} \\
 \midrule
-\texttt{high}   & 1.000 & 1.000 & 1.000 & 13 & 0 & 0 \\
-\texttt{medium} & 1.000 & 0.929 & 0.963 & 13 & 0 & 1 \\
+\texttt{medium (default)} & 1.000 & 1.000 & 1.000 & 14 & 0 & 0 \\
+\texttt{high}             & 0.917 & 0.846 & 0.880 & 11 & 1 & 2 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Even the hand-written mock under-flags one case, which is a useful sanity
-check on the benchmark's difficulty: the single false negative at the
-\texttt{medium} threshold is
-\texttt{treatment\_count}, a genuinely ambiguous feature: it may represent
+At the \texttt{medium} threshold---the framework's default operating
+point---the live model separates all 14 medium-or-high-risk features from
+the 16 safe features with zero errors; with only 30 features in the
+benchmark we read this as a strong result rather than a claim of zero-error
+behaviour in general.  The stricter \texttt{high} threshold is more
+informative precisely because it is not perfect: it produces three
+disagreements with the ground truth.  Two are recall misses, where a true
+high-risk feature was classified as only medium-risk
+(\texttt{batch\_rejection\_rate}, a proxy feature, and
+\texttt{training\_completion\_post\_hire}, a temporal feature); one is the
+reverse case for \texttt{treatment\_count}, a feature we had already
+identified as genuinely ambiguous---it may represent
 prior treatment history (a legitimate predictor) or treatments administered
 during the current hospital stay (a post-hoc quantity).  Without explicit
 dataset documentation, linguistic reasoning alone is insufficient to
 disambiguate this case---a limitation acknowledged in Section~\ref{sec:discussion}.
+Because this evaluation calls a live, independent model rather than a
+hand-written pattern matcher authored with knowledge of the benchmark's
+exact feature names, these three disagreements are genuine evidence about
+the model's semantic reasoning, not an artefact of how the benchmark was
+constructed.
 The benchmark and evaluation script are included in the repository at
 \texttt{data/semantic\_benchmark.json} and
 \texttt{scripts/evaluate\_semantic\_leakage.py}.
@@ -1189,10 +1200,8 @@ administrative code assigned at patient discharge) or \texttt{future\_usage}
 outside the scope of statistical tests, and produces explanations directly
 usable in a data documentation workflow.  As detailed in
 Section~\ref{sec:methodology}, the quantitative evaluation of this module
-reported in this submission used a deterministic offline simulation of
-GPT-4o-mini rather than a live API call, so we report it as a validation of
-the evaluation harness and defer a live-model accuracy claim to future
-work.
+reported in this submission is a live result against Claude Haiku 4.5 via
+AWS Bedrock, not a mock or harness-only validation.
 
 \paragraph{Limitations.}
 Cram\'er's $V$, as used in the classical \texttt{target\_leakage} check, is
@@ -1224,36 +1233,36 @@ flagged by the cheaper correlation check as a first pass, or by reducing
 the number of CV folds.
 
 The LLM semantic module introduces a cloud API dependency, latency
-(typically 5--15 seconds for 30 features), and cost (approximately \$0.001
-per dataset call at GPT-4o-mini pricing).  The quality of semantic analysis
+(typically 5--15 seconds for 30 features), and cost (approximately
+\$0.001--\$0.002
+per dataset call at GPT-4o-mini or Claude Haiku 4.5 pricing).  The quality of semantic analysis
 is also sensitive to the user-provided dataset description: brief or
 uninformative descriptions reduce the model's ability to distinguish
-temporal leakage from legitimate predictive features.  Finally, the module
+temporal leakage from legitimate predictive features, as illustrated by the
+three disagreements at the \texttt{high} threshold in
+Section~\ref{sec:methodology}.  Finally, the module
 cannot guarantee completeness---unusual naming conventions or domain-specific
-abbreviations may evade detection.  Most importantly,
-Table~\ref{tab:semantic_eval} in this submission was produced by the
-repository's deterministic offline mock rather than a live GPT-4o-mini
-call (Section~\ref{sec:methodology}); it validates the evaluation harness,
-not the model's real-world accuracy, and should not be cited as evidence
-of the latter.
+abbreviations may evade detection---and
+Table~\ref{tab:semantic_eval} reflects a single provider (Claude Haiku 4.5)
+and a single 30-feature benchmark, so broader claims about semantic-leakage
+accuracy would benefit from the larger, multi-provider evaluation described
+below.
 
 \paragraph{Future Work.}
-We identify five directions for extending ml-framework.  First and most
-immediate, we have not yet evaluated the semantic module against a live
-GPT-4o-mini endpoint on the 30-feature benchmark; doing so, and reporting
-the resulting precision/recall/F\textsubscript{1} alongside the
-mock-validation numbers in Table~\ref{tab:semantic_eval}, is a prerequisite
-for any claim about the module's real-world accuracy.  Second, support for
+We identify four directions for extending ml-framework.  First, support for
 regression and time-series tasks requires new performance-inflation metrics
-and temporally-aware sufficiency checks.  Third, causal discovery
+and temporally-aware sufficiency checks.  Second, causal discovery
 methods---such as the PC algorithm or FCI---could detect indirect leakage
 paths that information-theoretic measures miss when the causal graph is
-non-trivial.  Fourth, once live-model numbers are available, a larger
-benchmark derived from real data quality incident reports would enable more
-statistically robust evaluation of the LLM module across diverse domain
+non-trivial.  Third, now that a live evaluation against Claude Haiku 4.5 is
+available, a larger
+benchmark derived from real data quality incident reports, evaluated across
+both supported providers (GPT-4o-mini and Claude Haiku 4.5) and additional
+models, would enable more
+statistically robust and provider-independent conclusions about the LLM module across diverse domain
 vocabularies and naming conventions---the current 30-feature benchmark is
 intentionally small and should be read as a proof of methodology rather
-than a statistically powered evaluation.  Fifth, the readiness score
+than a statistically powered evaluation.  Fourth, the readiness score
 weighting ($w_q, w_l, w_f, w_s$) is currently fixed; a data-driven
 calibration approach that learns weights from labelled examples of
 production failures would make the score more adaptive to domain-specific

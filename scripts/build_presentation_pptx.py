@@ -609,7 +609,7 @@ kx = Inches(0.95)
 for value, label in [("20", "automated checks,\n5 dimensions"),
                      ("12", "datasets\n(6 synthetic + 6 real)"),
                      ("4/4", "leakage scenarios\ndetected"),
-                     ("325", "unit tests\npassing")]:
+                     ("331", "unit tests\npassing")]:
     kpi_card(s, value, label.replace("\n", " "), kx, Inches(5.3), w=Inches(2.7),
              h=Inches(1.35))
     kx += Inches(2.92)
@@ -813,43 +813,54 @@ rich(head.text_frame.paragraphs[0], "Approach", size=17, color=UPM_BLUE,
      base_bold=True)
 bullets(s, [
     "Feature names + sample values + dataset description → **GPT-4o-mini** "
-    "(Azure OpenAI).",
-    "Degrades gracefully without credentials; disabled by default.",
+    "(Azure) or **Claude Haiku 4.5** (AWS Bedrock).",
+    "Provider-agnostic; degrades gracefully without credentials; disabled by default.",
 ], Inches(0.7), Inches(4.3), Inches(6.4), Inches(2.0), size=15, gap=8)
 block(s, "Per-feature output", [
     "risk_level:   none / low / medium / high",
     "leakage_type:   temporal / proxy / post-hoc / indirect",
     "+ natural-language rationale",
 ], Inches(7.5), Inches(1.4), Inches(5.2), Inches(2.15), size=14)
-kpi_card(s, "0% → F1 0.963", "naming-based leakage detection, 30-feature "
-         "labelled benchmark", Inches(7.5), Inches(3.9), w=Inches(5.2),
+kpi_card(s, "0% → F1 1.00", "naming-based leakage detection, live evaluation "
+         "(30-feature benchmark)", Inches(7.5), Inches(3.9), w=Inches(5.2),
          h=Inches(1.5), accent=TEAL)
 
 # ======================================================================
-# 13 — Semantic caveat
+# 13 — Semantic module live evaluation
 # ======================================================================
 s = new_slide()
-chrome(s, "Semantic Module: Evaluation and an Honest Caveat",
+chrome(s, "Semantic Module: Live Evaluation Results",
        kicker="System & Methodology")
-bullets(s, [
-    "Manually labelled **30-feature benchmark** across temporal, proxy, "
-    "post-hoc, and indirect leakage types (data/semantic_benchmark.json).",
-], Inches(0.7), Inches(1.3), Inches(11.9), Inches(0.9), size=17, gap=8)
-kx = Inches(2.4)
-for value, label in [("1.00", "Precision"), ("0.93", "Recall"), ("0.963", "F1")]:
-    kpi_card(s, value, label, kx, Inches(2.15), w=Inches(2.6), h=Inches(1.3))
-    kx += Inches(2.95)
-block(s, "Transparency",
-      "These figures validate the **evaluation harness** using a deterministic "
-      "mock analyzer — not the live GPT-4o-mini model (Azure credentials were "
-      "unavailable at evaluation time). A live-model evaluation is the "
-      "**top-priority item of future work**, and this is stated explicitly in "
-      "the thesis.",
-      Inches(0.7), Inches(3.85), Inches(11.9), Inches(1.85),
-      head_color=RED, body_fill=RED_LIGHT, size=15)
-note(s, "The architecture, prompt design, structured output parsing, and "
-        "graceful degradation are fully implemented and tested "
-        "(33 unit tests for Phase 16 modules).", y=Inches(6.0))
+intro = textbox(s, Inches(0.7), Inches(1.2), Inches(11.9), Inches(0.45))
+rich(intro.text_frame.paragraphs[0],
+     "Manually labelled 30-feature benchmark, evaluated **live** against "
+     "Claude Haiku 4.5 (AWS Bedrock):", size=16)
+styled_table(s, [
+    ["Threshold", "P", "R", "F1", "TP", "FP", "FN"],
+    ["**medium (default)**", "**1.000**", "**1.000**", "**1.000**", "14", "0", "0"],
+    ["high", "0.917", "0.846", "0.880", "11", "1", "2"],
+], Inches(2.3), Inches(1.75), Inches(8.7), row_h=0.48, size=15,
+    col_widths=[2.9, 1.15, 1.15, 1.15, 0.85, 0.85, 0.85],
+    align_center_cols=(1, 2, 3, 4, 5, 6))
+note2 = textbox(s, Inches(0.7), Inches(3.35), Inches(11.9), Inches(0.4))
+rich(note2.text_frame.paragraphs[0],
+     "At the high threshold, three disagreements are genuine model behaviour, "
+     "not mock artefacts:", size=14, color=GRAY_TXT)
+styled_table(s, [
+    ["Feature", "Ground truth", "Predicted", "Note"],
+    ["treatment_count", "medium", "high", "Documented as genuinely ambiguous"],
+    ["batch_rejection_rate", "high", "medium", "Proxy feature, under-called"],
+    ["training_completion_post_hire", "high", "medium", "Temporal feature, under-called"],
+], Inches(0.9), Inches(3.85), Inches(11.5), row_h=0.42, size=13,
+    col_widths=[3.6, 1.7, 1.7, 4.5], align_center_cols=(1, 2))
+block(s, "Why this matters",
+      "Unlike the earlier mock (rigged with knowledge of the benchmark's "
+      "exact names), this is an **independent, third-party model** — its "
+      "errors are real evidence, not an artefact of the test design. Azure "
+      "OpenAI credentials were never obtained for this project; AWS credits "
+      "were available.",
+      Inches(0.7), Inches(5.75), Inches(11.9), Inches(1.05), size=13.5,
+      head_color=TEAL, body_fill=TEAL_LIGHT)
 
 # ======================================================================
 # 14 — Readiness score
@@ -1183,8 +1194,8 @@ numbered_card(s, 2, "The unified L(f) score works",
               "weights — 4/4 benchmark scenarios vs. 0–1/4 for existing tools.",
               Inches(6.75), Inches(1.3), cw, ch, accent=TEAL)
 numbered_card(s, 3, "LLMs extend detection to semantics",
-              "Leakage invisible to statistics becomes detectable; evaluation "
-              "harness built and validated, live-model run queued.",
+              "Leakage invisible to statistics becomes detectable; live "
+              "evaluation against Claude Haiku 4.5 confirms it works.",
               Inches(0.7), Inches(3.25), cw, ch, accent=TEAL)
 numbered_card(s, 4, "Real issues found in classic datasets",
               "Titanic boat/name and Wine Quality duplicates — previously "
@@ -1192,7 +1203,7 @@ numbered_card(s, 4, "Real issues found in classic datasets",
               Inches(6.75), Inches(3.25), cw, ch, accent=TEAL)
 kx = Inches(1.65)
 for value, label in [("17", "development phases"), ("14", "source modules"),
-                     ("325/325", "tests passing"), ("3", "user interfaces")]:
+                     ("331/331", "tests passing"), ("3", "user interfaces")]:
     kpi_card(s, value, label, kx, Inches(5.35), w=Inches(2.4), h=Inches(1.25))
     kx += Inches(2.6)
 
@@ -1202,9 +1213,9 @@ for value, label in [("17", "development phases"), ("14", "source modules"),
 s = new_slide()
 chrome(s, "Future Work", kicker="Demo & Conclusions")
 fw = [
-    ("Live LLM evaluation", "of the semantic module against the 30-feature "
-     "benchmark — top priority; the harness is ready, only credentials are "
-     "missing.", UPM_ORANGE),
+    ("Larger, multi-provider benchmark", "expand beyond 30 features and "
+     "systematically compare GPT-4o-mini vs. Claude Haiku 4.5 and other "
+     "models.", UPM_ORANGE),
     ("Broader leakage taxonomy", "group leakage, preprocessing leakage (scaler "
      "fit on full data), cross-validation contamination.", UPM_BLUE),
     ("CI/CD integration", "readiness score as a merge gate for data pipelines "

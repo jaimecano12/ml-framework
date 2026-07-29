@@ -389,16 +389,17 @@ rich(p, "ETSIT — Universidad Politécnica de Madrid   ·   "
 s = new_slide()
 chrome(s, "Agenda")
 agenda = [
-    ("Motivation & Objectives", "Why data leakage matters, the gap in existing "
-     "tools, and the four contributions", "≈ 5 min"),
+    ("Motivation & Objectives", "Why machine learning matters today, why data "
+     "leakage matters, the gap in existing tools, and the four contributions",
+     "≈ 7 min"),
     ("System & Methodology", "Architecture, the 20-check catalog, the unified "
-     "Leakage Risk Score, LLM semantic analysis, readiness scoring", "≈ 8 min"),
+     "Leakage Risk Score, LLM semantic analysis, readiness scoring", "≈ 7 min"),
     ("Experimental Results", "12 datasets, readiness scores, the Titanic case "
-     "study, impact analysis", "≈ 5 min"),
+     "study, impact analysis", "≈ 4 min"),
     ("Benchmark", "Quantitative comparison against ydata-profiling, Deepchecks, "
-     "and Great Expectations", "≈ 3 min"),
+     "and Great Expectations", "≈ 2 min"),
     ("Demo & Conclusions", "Live Streamlit demo, conclusions, future work",
-     "≈ 4 min"),
+     "≈ 5 min"),
 ]
 ay = Inches(1.35)
 for i, (name, desc, mins) in enumerate(agenda):
@@ -419,12 +420,66 @@ for i, (name, desc, mins) in enumerate(agenda):
 # DIVIDER 01 — Motivation & Objectives
 # ======================================================================
 divider(0, [
-    "The silent failure mode of machine learning  ·  a motivating example",
-    "What existing tools miss  ·  objectives and contributions of this thesis",
+    "Why machine learning matters today  ·  its silent failure mode",
+    "A motivating example  ·  the gap in existing tools",
+    "Objectives and contributions of this thesis",
 ])
 
 # ======================================================================
-# 3 — The problem
+# 3 — Why ML matters today (context)
+# ======================================================================
+s = new_slide()
+chrome(s, "Why Machine Learning Matters Today",
+       kicker="Motivation & Objectives")
+kx = Inches(0.7)
+kw = Inches(3.75)
+for value, label in [
+    ("88%", "organizations use AI in at least one business function"),
+    ("$1.2T+", "projected global AI market size by 2030"),
+    ("$12.9M", "average annual cost of poor data quality per organization"),
+]:
+    kpi_card(s, value, label, kx, Inches(1.25), w=kw, h=Inches(1.4))
+    kx += Inches(4.0)
+bridge = textbox(s, Inches(0.7), Inches(2.85), Inches(11.9), Inches(0.45))
+rich(bridge.text_frame.paragraphs[0],
+     "Adoption is accelerating fast --- but the systems delivering this value "
+     "are only as good as the data behind them.", size=15, color=GRAY_TXT,
+     align=PP_ALIGN.CENTER)
+chart_label = textbox(s, Inches(1.3), Inches(3.35), Inches(10.7), Inches(0.35))
+rich(chart_label.text_frame.paragraphs[0],
+     "Share of organizations using AI in at least one business function",
+     size=13, color=UPM_BLUE, base_bold=True, align=PP_ALIGN.CENTER)
+chart_data = CategoryChartData()
+chart_data.categories = ["2022", "2023", "2024", "2025"]
+chart_data.add_series("AI adoption (%)", [50, 55, 78, 88])
+gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(2.8),
+                        Inches(3.75), Inches(7.7), Inches(2.55), chart_data)
+chart = gf.chart
+chart.has_legend = False
+chart.has_title = False
+plot = chart.plots[0]
+plot.gap_width = 60
+plot.has_data_labels = True
+plot.data_labels.font.size = Pt(13)
+plot.data_labels.font.bold = True
+plot.data_labels.number_format = '0"%"'
+plot.data_labels.number_format_is_linked = False
+series = plot.series[0]
+for i, color in enumerate([TEAL, TEAL, TEAL, UPM_ORANGE]):
+    pt = series.points[i]
+    pt.format.fill.solid()
+    pt.format.fill.fore_color.rgb = color
+va = chart.value_axis
+va.maximum_scale = 100
+va.minimum_scale = 0
+va.major_unit = 25
+va.tick_labels.font.size = Pt(11)
+chart.category_axis.tick_labels.font.size = Pt(12)
+note(s, "Sources: McKinsey, State of AI survey (2022–2025)  ·  Statista Market "
+        "Insights (2025)  ·  Gartner data quality research.", y=Inches(6.5))
+
+# ======================================================================
+# 4 — The problem
 # ======================================================================
 s = new_slide()
 chrome(s, "Models Fail Because of Data, Not Algorithms",

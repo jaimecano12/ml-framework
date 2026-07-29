@@ -1,18 +1,27 @@
 """LLM-assisted semantic leakage analysis (Phase 16).
 
-Uses GPT-4o-mini via Azure OpenAI to detect *implicit* leakage that purely
+Uses a large language model to detect *implicit* leakage that purely
 statistical methods cannot catch: features whose *names* or *semantics*
 suggest they encode future or post-hoc information about the target.
+Provider-agnostic: supports Azure OpenAI (GPT-4o-mini) and AWS Bedrock
+(Anthropic Claude), selected via the ``provider`` config key.
 
-Setup (Azure):
+Setup (Azure — default):
     export AZURE_OPENAI_API_KEY="<your-key>"
     export AZURE_OPENAI_ENDPOINT="https://<resource>.openai.azure.com/"
     export AZURE_OPENAI_DEPLOYMENT="gpt-4o-mini"   # or your deployment name
 
+Setup (AWS Bedrock — set ``provider: bedrock`` in config):
+    aws configure   # or export AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+    export AWS_REGION="us-east-1"
+    export BEDROCK_MODEL_ID="anthropic.claude-3-5-haiku-20241022-v1:0"
+    Requires model access enabled for Anthropic Claude in the Bedrock
+    console (Model access) and the ``boto3`` package installed.
+
 Fallback:
-    If Azure credentials are not configured the module returns a
-    ``CheckResult`` with ``passed=True`` and a message explaining that the
-    LLM analysis was skipped.
+    If credentials for the selected provider are not configured the module
+    returns a ``CheckResult`` with ``passed=True`` and a message explaining
+    that the LLM analysis was skipped.
 """
 
 from __future__ import annotations
@@ -101,7 +110,7 @@ def _build_user_prompt(
 # Azure OpenAI client (optional dependency)
 # ---------------------------------------------------------------------------
 
-def _get_client():
+def _get_azure_client():
     """Return an AzureOpenAI client or raise ImportError / EnvironmentError."""
     try:
         from openai import AzureOpenAI  # type: ignore
@@ -125,10 +134,10 @@ def _get_client():
     )
 
 
-def _call_llm(prompt_user: str, deployment: str, max_tokens: int = 2000) -> str:
-    client = _get_client()
+def _call_llm_azure(prompt_user: str, model_id: str, max_tokens: int = 2000) -> str:
+    client = _get_azure_client()
     response = client.chat.completions.create(
-        model=deployment,
+        model=model_id,
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user",   "content": prompt_user},
@@ -137,6 +146,56 @@ def _call_llm(prompt_user: str, deployment: str, max_tokens: int = 2000) -> str:
         temperature=0.1,
     )
     return response.choices[0].message.content.strip()
+
+
+# ---------------------------------------------------------------------------
+# AWS Bedrock client (optional dependency)
+# ---------------------------------------------------------------------------
+
+def _get_bedrock_client():
+    """Return a boto3 bedrock-runtime client or raise ImportError."""
+    try:
+        import boto3  # type: ignore
+    except ImportError as exc:
+        raise ImportError(
+            "boto3 package not installed. Run: python -m pip install boto3"
+        ) from exc
+
+    region = os.environ.get("AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+    return boto3.client("bedrock-runtime", region_name=region)
+
+
+def _call_llm_bedrock(prompt_user: str, model_id: str, max_tokens: int = 2000) -> str:
+    import botocore.exceptions  # type: ignore
+
+    client = _get_bedrock_client()
+    try:
+        response = client.converse(
+            modelId=model_id,
+            system=[{"text": _SYSTEM_PROMPT}],
+            messages=[{"role": "user", "content": [{"text": prompt_user}]}],
+            inferenceConfig={"maxTokens": max_tokens, "temperature": 0.1},
+        )
+    except botocore.exceptions.NoCredentialsError as exc:
+        raise EnvironmentError(
+            "AWS credentials not configured. Run `aws configure` or set "
+            "AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY environment variables."
+        ) from exc
+
+    return response["output"]["message"]["content"][0]["text"].strip()
+
+
+# ---------------------------------------------------------------------------
+# Provider dispatch
+# ---------------------------------------------------------------------------
+
+def _call_llm(
+    prompt_user: str, model_id: str, provider: str = "azure", max_tokens: int = 2000
+) -> str:
+    """Dispatch to the configured LLM provider ('azure' or 'bedrock')."""
+    if provider == "bedrock":
+        return _call_llm_bedrock(prompt_user, model_id, max_tokens)
+    return _call_llm_azure(prompt_user, model_id, max_tokens)
 
 
 def _parse_llm_response(raw: str) -> list[SemanticRiskAssessment]:
@@ -180,7 +239,9 @@ def analyse_semantic_leakage(
         df: Input DataFrame.
         target_col: Name of the target / label column.
         config: The ``semantic_leakage`` config block.
-            Relevant keys: ``deployment`` (str, default "gpt-4o-mini"),
+            Relevant keys: ``provider`` ("azure"|"bedrock", default "azure"),
+            ``deployment`` (Azure deployment name, default "gpt-4o-mini"),
+            ``model_id`` (Bedrock model id, default Claude 3.5 Haiku),
             ``max_features`` (int, default 30), ``risk_threshold`` ("medium"|"high").
         dataset_description: Free-text description of the dataset context (optional).
 
@@ -201,15 +262,25 @@ def analyse_semantic_leakage(
     max_features: int = config.get("max_features", 30)
     feature_cols = feature_cols[:max_features]
 
-    deployment: str = config.get("deployment", os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini"))
+    provider: str = config.get("provider", "azure")
+    if provider == "bedrock":
+        model_id: str = config.get(
+            "model_id",
+            os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0"),
+        )
+    else:
+        model_id = config.get("deployment", os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini"))
     risk_threshold: str = config.get("risk_threshold", "medium")
 
     sample_values = {col: df[col].dropna().head(5).tolist() for col in feature_cols}
 
     try:
-        logger.info(f"Running LLM semantic leakage analysis ({len(feature_cols)} features)…")
+        logger.info(
+            f"Running LLM semantic leakage analysis ({len(feature_cols)} features, "
+            f"provider={provider})…"
+        )
         user_prompt = _build_user_prompt(feature_cols, target_col, dataset_description, sample_values)
-        raw_response = _call_llm(user_prompt, deployment)
+        raw_response = _call_llm(user_prompt, model_id, provider=provider)
         assessments = _parse_llm_response(raw_response)
     except (ImportError, EnvironmentError) as exc:
         logger.warning(f"Semantic leakage analysis skipped: {exc}")
@@ -240,7 +311,8 @@ def analyse_semantic_leakage(
     details = {
         "assessments": [a.to_dict() for a in assessments],
         "risk_threshold": risk_threshold,
-        "deployment": deployment,
+        "provider": provider,
+        "model_id": model_id,
         "total_features_analysed": len(assessments),
     }
 

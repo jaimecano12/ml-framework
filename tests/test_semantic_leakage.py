@@ -175,3 +175,67 @@ class TestAnalyseSemanticLeakage:
             for a in r.details.get("assessments", [])
             if a["feature_name"] in r.affected_columns
         )
+
+
+class TestBedrockProvider:
+    """Phase 17 follow-up: AWS Bedrock (Claude) as an alternative provider."""
+
+    _cfg = {"enabled": True, "provider": "bedrock",
+            "model_id": "anthropic.claude-3-5-haiku-20241022-v1:0",
+            "max_features": 30, "risk_threshold": "medium"}
+
+    @patch("src.semantic_leakage._call_llm", return_value=_MOCK_LLM_RESPONSE)
+    def test_bedrock_provider_detects_high_risk_features(self, mock_llm, df_sample: pd.DataFrame):
+        r = analyse_semantic_leakage(df_sample, "target", self._cfg)
+        assert not r.passed
+        assert "discharge_code" in r.affected_columns
+        assert "future_usage" in r.affected_columns
+
+    @patch("src.semantic_leakage._call_llm", return_value=_MOCK_LLM_RESPONSE)
+    def test_details_record_bedrock_provider_and_model(self, mock_llm, df_sample: pd.DataFrame):
+        r = analyse_semantic_leakage(df_sample, "target", self._cfg)
+        assert r.details["provider"] == "bedrock"
+        assert r.details["model_id"] == "anthropic.claude-3-5-haiku-20241022-v1:0"
+
+    def test_skips_gracefully_when_no_aws_credentials(self, df_sample: pd.DataFrame):
+        import botocore.exceptions
+
+        with patch("src.semantic_leakage._get_bedrock_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.converse.side_effect = botocore.exceptions.NoCredentialsError()
+            mock_get_client.return_value = mock_client
+            r = analyse_semantic_leakage(df_sample, "target", self._cfg)
+        assert r.passed
+        assert "skipped" in r.message.lower()
+
+    def test_call_llm_bedrock_parses_converse_response(self):
+        from src.semantic_leakage import _call_llm_bedrock
+
+        with patch("src.semantic_leakage._get_bedrock_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.converse.return_value = {
+                "output": {"message": {"content": [{"text": _MOCK_LLM_RESPONSE}]}}
+            }
+            mock_get_client.return_value = mock_client
+            result = _call_llm_bedrock("some prompt", "anthropic.claude-3-5-haiku-20241022-v1:0")
+        assert result == _MOCK_LLM_RESPONSE
+
+
+class TestProviderDispatch:
+    """Phase 17 follow-up: _call_llm() routes to the configured provider."""
+
+    @patch("src.semantic_leakage._call_llm_bedrock", return_value="mocked-bedrock")
+    def test_call_llm_dispatches_to_bedrock(self, mock_bedrock):
+        from src.semantic_leakage import _call_llm
+
+        result = _call_llm("prompt", "anthropic.claude-3-5-haiku-20241022-v1:0", provider="bedrock")
+        assert result == "mocked-bedrock"
+        mock_bedrock.assert_called_once()
+
+    @patch("src.semantic_leakage._call_llm_azure", return_value="mocked-azure")
+    def test_call_llm_dispatches_to_azure_by_default(self, mock_azure):
+        from src.semantic_leakage import _call_llm
+
+        result = _call_llm("prompt", "gpt-4o-mini")
+        assert result == "mocked-azure"
+        mock_azure.assert_called_once()

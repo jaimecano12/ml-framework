@@ -1,18 +1,23 @@
 """Quantitative evaluation of the LLM semantic leakage module.
 
-Runs the semantic leakage analyser (real or mock) against a manually
-constructed benchmark of 30 labelled features across five domain contexts,
-and reports precision, recall, and F1 at two risk thresholds.
+Runs the semantic leakage analyser (mock, Azure, or AWS Bedrock) against a
+manually constructed benchmark of 30 labelled features across five domain
+contexts, and reports precision, recall, and F1 at two risk thresholds.
 
 Usage
 -----
-# With real Azure credentials:
+# Deterministic mock mode (no credentials required, default):
+    python scripts/evaluate_semantic_leakage.py --provider mock
+
+# With real Azure credentials (GPT-4o-mini):
     export AZURE_OPENAI_API_KEY=...
     export AZURE_OPENAI_ENDPOINT=...
-    python scripts/evaluate_semantic_leakage.py
+    python scripts/evaluate_semantic_leakage.py --provider azure
 
-# Deterministic mock mode (no credentials required):
-    python scripts/evaluate_semantic_leakage.py --mock
+# With real AWS Bedrock credentials (Claude 3.5 Haiku):
+    aws configure   # or export AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+    export AWS_REGION=us-east-1
+    python scripts/evaluate_semantic_leakage.py --provider bedrock
 
 Output
 ------
@@ -144,8 +149,13 @@ def _metrics(tp: int, fp: int, fn: int) -> dict[str, float]:
             "tp": tp, "fp": fp, "fn": fn}
 
 
-def evaluate(benchmark: list[dict], use_mock: bool) -> dict:
-    """Run evaluation at thresholds 'medium' and 'high'."""
+def evaluate(benchmark: list[dict], provider: str) -> dict:
+    """Run evaluation at thresholds 'medium' and 'high'.
+
+    Args:
+        benchmark: List of labelled benchmark features.
+        provider: "mock", "azure", or "bedrock".
+    """
 
     # Group features by dataset context so the LLM gets coherent prompts
     context_groups: dict[str, list[dict]] = defaultdict(list)
@@ -158,12 +168,18 @@ def evaluate(benchmark: list[dict], use_mock: bool) -> dict:
         feat_names = [it["feature_name"] for it in items]
         sample_vals = {f: [] for f in feat_names}
 
-        if use_mock:
+        if provider == "mock":
             raw = _mock_llm_response(feat_names, context)
         else:
             from src.semantic_leakage import _call_llm
             prompt = _build_user_prompt(feat_names, "target", context, sample_vals)
-            raw = _call_llm(prompt, os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini"))
+            if provider == "bedrock":
+                model_id = os.environ.get(
+                    "BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0"
+                )
+            else:
+                model_id = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
+            raw = _call_llm(prompt, model_id, provider=provider)
 
         assessments = _parse_llm_response(raw)
         for a in assessments:
@@ -242,27 +258,38 @@ def print_table(results: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate semantic leakage module.")
+    parser.add_argument("--provider", choices=["mock", "azure", "bedrock"], default="mock",
+                        help="LLM provider to use (default: mock)")
     parser.add_argument("--mock", action="store_true",
-                        help="Use deterministic mock instead of real LLM API")
+                        help="Deprecated alias for --provider mock")
     args = parser.parse_args()
 
-    use_mock = args.mock
-    if not use_mock:
-        if not os.environ.get("AZURE_OPENAI_API_KEY"):
-            print("No AZURE_OPENAI_API_KEY found — falling back to --mock mode.")
-            use_mock = True
+    provider = "mock" if args.mock else args.provider
+
+    if provider == "azure" and not os.environ.get("AZURE_OPENAI_API_KEY"):
+        print("No AZURE_OPENAI_API_KEY found — falling back to mock mode.")
+        provider = "mock"
+
+    if provider == "bedrock":
+        try:
+            import boto3
+            if boto3.session.Session().get_credentials() is None:
+                print("No AWS credentials found — falling back to mock mode.")
+                provider = "mock"
+        except ImportError:
+            print("boto3 not installed — falling back to mock mode.")
+            provider = "mock"
 
     benchmark = json.loads(BENCHMARK_PATH.read_text())
-    print(f"Loaded benchmark: {len(benchmark)} features, "
-          f"mode={'mock' if use_mock else 'live LLM'}")
+    print(f"Loaded benchmark: {len(benchmark)} features, provider={provider}")
 
-    results = evaluate(benchmark, use_mock)
+    results = evaluate(benchmark, provider)
     print_table(results)
 
     RESULTS_PATH.parent.mkdir(exist_ok=True)
     output = {
         "benchmark_size": len(benchmark),
-        "mode": "mock" if use_mock else "live",
+        "mode": provider,
         "results": results,
     }
     RESULTS_PATH.write_text(json.dumps(output, indent=2))

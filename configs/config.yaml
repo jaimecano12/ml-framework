@@ -110,11 +110,14 @@ drift_checks:
     date_column: null
 
 semantic_leakage:
-  enabled: false              # set true when AZURE_OPENAI_API_KEY is configured
-  deployment: gpt-4o-mini    # Azure OpenAI deployment name
+  enabled: false              # set true once provider credentials are configured
+  provider: bedrock           # "azure" (GPT-4o-mini) or "bedrock" (Claude 3.5 Haiku)
+  deployment: gpt-4o-mini    # Azure OpenAI deployment name (used when provider: azure)
+  model_id: anthropic.claude-3-5-haiku-20241022-v1:0   # Bedrock model id (used when provider: bedrock)
   max_features: 30            # max features to send to LLM
   risk_threshold: medium      # flag features with risk >= this level
-  # AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be set as env vars
+  # provider: azure   -> AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT env vars
+  # provider: bedrock -> AWS credentials via `aws configure` + AWS_REGION env var
 
 scoring:
   dimension_weights:

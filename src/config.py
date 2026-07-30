@@ -66,6 +66,14 @@ _DEFAULTS: dict[str, Any] = {
         "label_drift":     {"enabled": True, "alpha": 0.05, "date_column": None},
     },
     "plugins": [],
+    "semantic_leakage": {
+        "enabled": False,
+        "provider": "azure",
+        "deployment": "gpt-4o-mini",
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "max_features": 30,
+        "risk_threshold": "medium",
+    },
     "reporting": {
         "output_dir": "reports/",
         "format": "html",
@@ -78,6 +86,8 @@ _VALID_OUTLIER_METHODS = {"iqr", "zscore"}
 _VALID_REPORT_FORMATS = {"html"}
 _VALID_MODELS = {"logistic_regression", "random_forest", "xgboost"}
 _VALID_METRICS = {"accuracy", "roc_auc", "f1", "precision", "recall"}
+_VALID_SEMANTIC_PROVIDERS = {"azure", "bedrock"}
+_VALID_RISK_THRESHOLDS = {"none", "low", "medium", "high"}
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +215,19 @@ def _validate(config: dict[str, Any]) -> None:
     if fa_mi_t is not None and not (0.0 <= fa_mi_t <= 1.0):
         errors.append(
             f"feature_analysis.feature_relevance.mi_threshold must be in [0, 1], got {fa_mi_t}."
+        )
+
+    # semantic_leakage
+    sl = config.get("semantic_leakage", {})
+    sl_provider = sl.get("provider", "azure")
+    if sl_provider not in _VALID_SEMANTIC_PROVIDERS:
+        errors.append(
+            f"semantic_leakage.provider must be one of {_VALID_SEMANTIC_PROVIDERS}, got '{sl_provider}'."
+        )
+    sl_threshold = sl.get("risk_threshold", "medium")
+    if sl_threshold not in _VALID_RISK_THRESHOLDS:
+        errors.append(
+            f"semantic_leakage.risk_threshold must be one of {_VALID_RISK_THRESHOLDS}, got '{sl_threshold}'."
         )
 
     # reporting

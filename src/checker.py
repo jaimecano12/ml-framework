@@ -17,6 +17,7 @@ from .quality_checks import run_all_quality_checks
 from .recommendations import generate_recommendations
 from .reporting import generate_report
 from .scoring import compute_readiness_score
+from .semantic_leakage import analyse_semantic_leakage
 from .sufficiency import run_all_sufficiency_checks
 from .utils import CheckResult, FrameworkReport, Recommendation, ReadinessScore, load_dataset, logger
 
@@ -80,6 +81,7 @@ class DatasetChecker:
         target_col: str | None = None,
         *,
         skip_impact: bool = False,
+        dataset_description: str = "",
     ) -> FrameworkReport:
         """Execute the full analysis pipeline.
 
@@ -87,6 +89,9 @@ class DatasetChecker:
             dataset: DataFrame or path to CSV / Parquet / Excel file.
             target_col: Target column name. Overrides the config value if given.
             skip_impact: Skip the (slow) cross-validation impact analysis.
+            dataset_description: Free-text context passed to the optional LLM
+                semantic leakage module (ignored unless
+                ``semantic_leakage.enabled: true`` in config).
 
         Returns:
             Populated :class:`~src.utils.FrameworkReport`.
@@ -124,6 +129,12 @@ class DatasetChecker:
 
         if not skip_impact:
             report.impact_results = run_impact_analysis(df, tc, report, get_section(self._config, "impact_analysis"))
+
+        semantic_cfg = get_section(self._config, "semantic_leakage")
+        if semantic_cfg.get("enabled", False):
+            report.semantic_results = [
+                analyse_semantic_leakage(df, tc, semantic_cfg, dataset_description=dataset_description)
+            ]
 
         report.recommendations = generate_recommendations(report)
         report.readiness_score = compute_readiness_score(
@@ -199,6 +210,7 @@ class DatasetChecker:
             "sufficiency_results": [r.to_dict() for r in report.sufficiency_results],
             "drift_results":       [r.to_dict() for r in report.drift_results],
             "impact_results":      [r.to_dict() for r in report.impact_results],
+            "semantic_results":    [r.to_dict() for r in report.semantic_results],
             "recommendations":     [vars(r) for r in report.recommendations],
             "readiness_score":     report.readiness_score.to_dict()
                                    if report.readiness_score else None,

@@ -44,6 +44,12 @@ class TestLoadConfig:
         assert cfg["logging"]["level"] == "INFO"
         assert cfg["logging"]["file"] is None
 
+    def test_semantic_leakage_defaults(self, tmp_path: Path):
+        cfg = load_config(_minimal(tmp_path))
+        assert cfg["semantic_leakage"]["enabled"] is False
+        assert cfg["semantic_leakage"]["provider"] == "azure"
+        assert cfg["semantic_leakage"]["risk_threshold"] == "medium"
+
     def test_all_top_level_sections_present(self, tmp_path: Path):
         cfg = load_config(_minimal(tmp_path))
         for section in ("dataset", "logging", "quality_checks", "leakage_checks",
@@ -141,6 +147,16 @@ class TestConfigValidation:
     def test_invalid_report_format_raises(self, tmp_path: Path):
         p = self._make(tmp_path, {"reporting": {"format": "pdf"}})
         with pytest.raises(ValueError, match="reporting.format"):
+            load_config(p)
+
+    def test_invalid_semantic_provider_raises(self, tmp_path: Path):
+        p = self._make(tmp_path, {"semantic_leakage": {"provider": "openai_direct"}})
+        with pytest.raises(ValueError, match="semantic_leakage.provider"):
+            load_config(p)
+
+    def test_invalid_semantic_risk_threshold_raises(self, tmp_path: Path):
+        p = self._make(tmp_path, {"semantic_leakage": {"risk_threshold": "critical"}})
+        with pytest.raises(ValueError, match="semantic_leakage.risk_threshold"):
             load_config(p)
 
     def test_multiple_errors_reported_together(self, tmp_path: Path):

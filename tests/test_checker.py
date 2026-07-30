@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from src.checker import DatasetChecker
-from src.utils import FrameworkReport
+from src.utils import CheckResult, FrameworkReport
 
 
 @pytest.fixture()
@@ -76,8 +78,32 @@ class TestDatasetChecker:
         d = checker.to_dict()
         for key in ("summary", "quality_results", "leakage_results",
                     "feature_results", "sufficiency_results", "drift_results",
-                    "recommendations", "readiness_score"):
+                    "semantic_results", "recommendations", "readiness_score"):
             assert key in d
+
+    def test_semantic_analysis_disabled_by_default(self, df_simple):
+        checker = DatasetChecker()
+        report = checker.run(df_simple, target_col="target", skip_impact=True)
+        assert report.semantic_results == []
+
+    @patch("src.checker.analyse_semantic_leakage")
+    def test_semantic_analysis_runs_when_enabled(self, mock_analyse, df_simple):
+        mock_analyse.return_value = CheckResult(
+            check_name="semantic_leakage", passed=False, severity="warning",
+            message="LLM flagged 1 feature", details={"assessments": []},
+        )
+        checker = DatasetChecker()
+        checker.set(**{"semantic_leakage__enabled": True, "semantic_leakage__provider": "bedrock"})
+        report = checker.run(
+            df_simple, target_col="target", skip_impact=True,
+            dataset_description="unit test dataset",
+        )
+        assert len(report.semantic_results) == 1
+        assert report.semantic_results[0].message == "LLM flagged 1 feature"
+        mock_analyse.assert_called_once()
+        _, kwargs = mock_analyse.call_args
+        assert mock_analyse.call_args.args[1] == "target"
+        assert kwargs.get("dataset_description") == "unit test dataset"
 
     def test_set_overrides_config(self, df_simple):
         checker = DatasetChecker()

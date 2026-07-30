@@ -142,3 +142,16 @@ class TestFrameworkReport:
     def test_summary_contains_dataset_name(self):
         report = FrameworkReport(dataset_name="my_data")
         assert report.summary()["dataset_name"] == "my_data"
+
+    def test_semantic_results_default_empty(self):
+        report = FrameworkReport(dataset_name="ds")
+        assert report.semantic_results == []
+
+    def test_semantic_results_included_in_all_results(self):
+        report = self._make_report()
+        report.semantic_results = [
+            CheckResult("semantic_leakage", passed=False, severity="warning",
+                        message="LLM flagged 1 feature"),
+        ]
+        assert len(report.all_results()) == 4
+        assert len(report.failed_checks()) == 3

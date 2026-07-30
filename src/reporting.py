@@ -38,6 +38,7 @@ def _plot_check_summary(report: FrameworkReport) -> str:
         "Quality": report.quality_results,
         "Leakage": report.leakage_results,
         "Impact": report.impact_results,
+        "Semantic": report.semantic_results,
     }
     labels, passed_counts, failed_counts = [], [], []
     for phase, results in phases.items():

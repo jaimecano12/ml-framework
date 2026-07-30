@@ -72,6 +72,7 @@
     .b-high    { background: #ffcdd2; color: #b71c1c; }
     .b-medium  { background: #fff9c4; color: #f57f17; }
     .b-low     { background: #e8f5e9; color: #2e7d32; }
+    .b-none    { background: #eeeeee; color: #616161; }
 
     /* ── Delta colouring ─────────────────────────────────────────────── */
     .delta-neg { color: #c62828; font-weight: 600; }
@@ -200,6 +201,41 @@
   <div class="card">
     <h2>Feature Analysis</h2>
     {{ results_table(report.feature_results) }}
+  </div>
+  {% endif %}
+
+  <!-- Semantic Leakage Analysis (LLM, Phase 16, opt-in) -->
+  {% if report.semantic_results %}
+  {% set sem = report.semantic_results[0] %}
+  <div class="card">
+    <h2>Semantic Leakage Analysis (LLM)</h2>
+    <p class="meta">
+      <span class="badge {{ 'b-pass' if sem.passed else 'b-fail' }}">{{ '✓ PASS' if sem.passed else '✗ FAIL' }}</span>
+      <span class="badge b-{{ sem.severity }}">{{ sem.severity.upper() }}</span>
+      &nbsp;{{ sem.message }}
+    </p>
+    {% if sem.details.get('assessments') %}
+    <table style="margin-top:14px;">
+      <thead>
+        <tr><th>Feature</th><th>Risk</th><th>Type</th><th>Reasoning</th><th>Suggested action</th></tr>
+      </thead>
+      <tbody>
+      {% for a in sem.details['assessments'] %}
+      <tr>
+        <td class="mono">{{ a.feature_name }}</td>
+        <td><span class="badge b-{{ a.risk_level }}">{{ a.risk_level.upper() }}</span></td>
+        <td class="mono">{{ a.leakage_type }}</td>
+        <td class="small">{{ a.reasoning }}</td>
+        <td class="small">{{ a.recommendation or '—' }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <p class="meta" style="margin-top:10px;">
+      Provider: <strong>{{ sem.details.get('provider', '—') }}</strong>
+      &bull; Model: <strong class="mono">{{ sem.details.get('model_id', '—') }}</strong>
+    </p>
   </div>
   {% endif %}
 

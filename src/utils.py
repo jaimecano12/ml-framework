@@ -179,6 +179,7 @@ class FrameworkReport:
     sufficiency_results:  list[CheckResult]    = field(default_factory=list)    # Phase 11
     drift_results:        list[CheckResult]    = field(default_factory=list)    # Phase 14
     impact_results:       list[CheckResult]    = field(default_factory=list)
+    semantic_results:     list[CheckResult]    = field(default_factory=list)    # Phase 16, opt-in
     recommendations:      list[Recommendation] = field(default_factory=list)    # Phase 8
     readiness_score:      Optional[ReadinessScore] = field(default=None)        # Phase 10
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -186,7 +187,8 @@ class FrameworkReport:
     def all_results(self) -> list[CheckResult]:
         """Return every CheckResult across all phases."""
         return (self.quality_results + self.leakage_results + self.feature_results
-                + self.sufficiency_results + self.drift_results + self.impact_results)
+                + self.sufficiency_results + self.drift_results + self.impact_results
+                + self.semantic_results)
 
     def failed_checks(self) -> list[CheckResult]:
         return [r for r in self.all_results() if not r.passed]

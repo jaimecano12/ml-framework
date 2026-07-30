@@ -47,6 +47,25 @@ def _make_full_report() -> FrameworkReport:
             },
         ),
     ]
+    report.semantic_results = [
+        CheckResult(
+            "semantic_leakage", passed=False, severity="warning",
+            message="LLM flagged 1 feature(s) with semantic leakage risk >= 'medium': ['discharge_date']",
+            details={
+                "provider": "bedrock",
+                "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "assessments": [
+                    {"feature_name": "discharge_date", "risk_level": "high",
+                     "leakage_type": "temporal", "reasoning": "Known only after outcome.",
+                     "recommendation": "Remove discharge_date."},
+                    {"feature_name": "age", "risk_level": "none",
+                     "leakage_type": "none", "reasoning": "Known at admission.",
+                     "recommendation": ""},
+                ],
+            },
+            affected_columns=["discharge_date"],
+        ),
+    ]
     return report
 
 
@@ -162,6 +181,19 @@ class TestGenerateReport:
         content = path.read_text(encoding="utf-8")
         assert "Impact Analysis" in content
         assert "logistic_regression" in content
+
+    def test_html_contains_semantic_section(self, tmp_path: Path):
+        report = _make_full_report()
+        path = generate_report(report, tmp_path, {"include_plots": False})
+        content = path.read_text(encoding="utf-8")
+        assert "Semantic Leakage Analysis" in content
+        assert "discharge_date" in content
+        assert "bedrock" in content
+
+    def test_html_omits_semantic_section_when_absent(self, tmp_path: Path):
+        path = generate_report(_minimal_report(), tmp_path, {"include_plots": False})
+        content = path.read_text(encoding="utf-8")
+        assert "<h2>Semantic Leakage Analysis" not in content
 
     def test_plots_embedded_when_enabled(self, tmp_path: Path):
         report = _make_full_report()

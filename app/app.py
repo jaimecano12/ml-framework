@@ -148,6 +148,29 @@ with st.sidebar:
         )
 
         st.divider()
+        st.subheader("Semantic leakage (LLM, optional)")
+        semantic_enabled = st.checkbox(
+            "Enable semantic leakage analysis",
+            value=False,
+            help="Sends feature names and sample values to an LLM to detect "
+                 "naming-based leakage that statistics cannot see.",
+        )
+        semantic_provider = "azure"
+        semantic_description = ""
+        if semantic_enabled:
+            semantic_provider = st.selectbox(
+                "Provider",
+                ["bedrock", "azure"],
+                help="bedrock = Claude Haiku 4.5 (AWS); azure = GPT-4o-mini. "
+                     "Requires the corresponding credentials as env vars.",
+            )
+            semantic_description = st.text_area(
+                "Dataset description (optional)",
+                placeholder="e.g. Titanic passenger survival prediction",
+                help="Extra context sent to the model alongside feature names.",
+            )
+
+        st.divider()
         run_btn = st.button("▶  Run Analysis", type="primary", use_container_width=True)
 
 
@@ -173,6 +196,8 @@ if run_btn or "report" not in st.session_state:
             checker.set(
                 **{"leakage_checks__target_leakage__correlation_threshold": corr_thr},
                 **{"impact_analysis__models": models},
+                **{"semantic_leakage__enabled": semantic_enabled},
+                **{"semantic_leakage__provider": semantic_provider},
             )
             if date_col:
                 checker.set(**{
@@ -180,7 +205,10 @@ if run_btn or "report" not in st.session_state:
                     "drift_checks__covariate_drift__date_column": date_col,
                     "drift_checks__label_drift__date_column": date_col,
                 })
-            report = checker.run(df_raw, target_col=target_col, skip_impact=not run_impact)
+            report = checker.run(
+                df_raw, target_col=target_col, skip_impact=not run_impact,
+                dataset_description=semantic_description,
+            )
             st.session_state["report"]  = report
             st.session_state["checker"] = checker
         st.success("Analysis complete!")
@@ -221,12 +249,14 @@ if rs:
 st.divider()
 
 # ── Tabs ─────────────────────────────────────────────────────────────────────
-tab_quality, tab_leakage, tab_features, tab_sufficiency, tab_drift, tab_recs, tab_dl = st.tabs([
+(tab_quality, tab_leakage, tab_features, tab_sufficiency, tab_drift,
+ tab_semantic, tab_recs, tab_dl) = st.tabs([
     "🔍 Quality",
     "🔒 Leakage",
     "📊 Features",
     "📏 Sufficiency",
     "📉 Drift",
+    "🤖 Semantic",
     "💡 Recommendations",
     "📥 Download",
 ])
@@ -253,6 +283,31 @@ with tab_sufficiency:
 with tab_drift:
     st.subheader("Distribution Drift")
     _results_table(report.drift_results)
+
+with tab_semantic:
+    st.subheader("Semantic Leakage Analysis (LLM)")
+    if not report.semantic_results:
+        st.info(
+            "Semantic analysis was not enabled for this run. Check "
+            "**Enable semantic leakage analysis** in the sidebar and click "
+            "**Run Analysis** again to test it."
+        )
+    else:
+        sem = report.semantic_results[0]
+        status = "✓ PASS" if sem.passed else "✗ FAIL"
+        st.markdown(
+            _badge(status, "#2e7d32" if sem.passed else "#c62828") + "&nbsp;"
+            + _badge(sem.severity.upper(), SEVERITY_COLOURS.get(sem.severity, "#888"))
+            + f"&nbsp; {sem.message}",
+            unsafe_allow_html=True,
+        )
+        assessments = sem.details.get("assessments", [])
+        if assessments:
+            st.dataframe(pd.DataFrame(assessments), use_container_width=True, hide_index=True)
+        st.caption(
+            f"Provider: {sem.details.get('provider', '—')}  ·  "
+            f"Model: {sem.details.get('model_id', '—')}"
+        )
 
 with tab_recs:
     st.subheader("Recommendations")

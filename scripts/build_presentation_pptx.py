@@ -609,7 +609,7 @@ kx = Inches(0.95)
 for value, label in [("20", "automated checks,\n5 dimensions"),
                      ("12", "datasets\n(6 synthetic + 6 real)"),
                      ("4/4", "leakage scenarios\ndetected"),
-                     ("331", "unit tests\npassing")]:
+                     ("343", "unit tests\npassing")]:
     kpi_card(s, value, label.replace("\n", " "), kx, Inches(5.3), w=Inches(2.7),
              h=Inches(1.35))
     kx += Inches(2.92)
@@ -1203,7 +1203,7 @@ numbered_card(s, 4, "Real issues found in classic datasets",
               Inches(6.75), Inches(3.25), cw, ch, accent=TEAL)
 kx = Inches(1.65)
 for value, label in [("17", "development phases"), ("14", "source modules"),
-                     ("331/331", "tests passing"), ("3", "user interfaces")]:
+                     ("343/343", "tests passing"), ("3", "user interfaces")]:
     kpi_card(s, value, label, kx, Inches(5.35), w=Inches(2.4), h=Inches(1.25))
     kx += Inches(2.6)
 

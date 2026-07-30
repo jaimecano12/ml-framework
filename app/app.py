@@ -38,6 +38,9 @@ SEVERITY_COLOURS = {"info": "#64b5f6", "warning": "#ffb74d", "error": "#ef5350"}
 PRIORITY_COLOURS = {"high": "#ef5350", "medium": "#ffb74d", "low": "#66bb6a"}
 GRADE_COLOURS    = {"A": "#2e7d32", "B": "#558b2f", "C": "#f57f17",
                     "D": "#e65100", "F": "#b71c1c"}
+RISK_COLOURS     = {"high": "#ef5350", "medium": "#ffb74d",
+                    "low": "#81c784", "none": "#bdbdbd"}
+RISK_ORDER       = {"high": 0, "medium": 1, "low": 2, "none": 3}
 
 
 def _load_df(uploaded_file) -> pd.DataFrame:
@@ -294,16 +297,57 @@ with tab_semantic:
         )
     else:
         sem = report.semantic_results[0]
-        status = "✓ PASS" if sem.passed else "✗ FAIL"
-        st.markdown(
-            _badge(status, "#2e7d32" if sem.passed else "#c62828") + "&nbsp;"
-            + _badge(sem.severity.upper(), SEVERITY_COLOURS.get(sem.severity, "#888"))
-            + f"&nbsp; {sem.message}",
-            unsafe_allow_html=True,
+        all_assessments = sem.details.get("assessments", [])
+        flagged = sorted(
+            (a for a in all_assessments if a.get("risk_level", "none") != "none"),
+            key=lambda a: RISK_ORDER.get(a.get("risk_level", "none"), 9),
         )
-        assessments = sem.details.get("assessments", [])
-        if assessments:
-            st.dataframe(pd.DataFrame(assessments), use_container_width=True, hide_index=True)
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Status", "✓ Pass" if sem.passed else "✗ Fail")
+        with col2:
+            st.metric("Features flagged", f"{len(flagged)}/{len(all_assessments)}")
+        with col3:
+            st.metric("Severity", sem.severity.upper())
+        st.caption(sem.message)
+        st.divider()
+
+        if not flagged:
+            st.success(
+                f"No semantic leakage risk detected across "
+                f"{len(all_assessments)} feature(s) analysed."
+            )
+        else:
+            risk_filter = st.radio(
+                "Filter by risk level",
+                ["All", "High", "Medium", "Low"],
+                horizontal=True,
+            )
+            for a in flagged:
+                risk = a.get("risk_level", "none")
+                if risk_filter != "All" and risk.lower() != risk_filter.lower():
+                    continue
+                colour = RISK_COLOURS.get(risk, "#aaa")
+                ltype = a.get("leakage_type", "none")
+                label = f"⚠️ {a.get('feature_name', '?')}  —  {risk.upper()}"
+                if ltype != "none":
+                    label += f" ({ltype})"
+                with st.expander(label):
+                    st.markdown(
+                        _badge(risk.upper(), colour) + "&nbsp;"
+                        + _badge(ltype.upper(), "#607d8b"),
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(f"**Reasoning:** {a.get('reasoning') or '—'}")
+                    if a.get("recommendation"):
+                        st.markdown(f"**Suggested action:** {a['recommendation']}")
+            st.caption(
+                f"{len(all_assessments) - len(flagged)} additional feature(s) "
+                "showed no semantic leakage risk and are not listed above."
+            )
+
+        st.divider()
         st.caption(
             f"Provider: {sem.details.get('provider', '—')}  ·  "
             f"Model: {sem.details.get('model_id', '—')}"

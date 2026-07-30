@@ -190,6 +190,30 @@ class TestGenerateReport:
         assert "discharge_date" in content
         assert "bedrock" in content
 
+    def test_html_semantic_section_omits_none_risk_features(self, tmp_path: Path):
+        report = _make_full_report()
+        path = generate_report(report, tmp_path, {"include_plots": False})
+        content = path.read_text(encoding="utf-8")
+        assert "discharge_date" in content
+        assert ">age<" not in content
+
+    def test_html_semantic_section_shows_flagged_count(self, tmp_path: Path):
+        report = _make_full_report()
+        path = generate_report(report, tmp_path, {"include_plots": False})
+        content = path.read_text(encoding="utf-8")
+        assert "1 of 2 feature(s) flagged" in content
+
+    def test_html_semantic_section_no_risk_message_when_all_safe(self, tmp_path: Path):
+        report = _make_full_report()
+        report.semantic_results[0].details["assessments"] = [
+            {"feature_name": "age", "risk_level": "none", "leakage_type": "none",
+             "reasoning": "Safe.", "recommendation": ""},
+        ]
+        path = generate_report(report, tmp_path, {"include_plots": False})
+        content = path.read_text(encoding="utf-8")
+        assert "No semantic leakage risk detected" in content
+        assert ">age<" not in content
+
     def test_html_omits_semantic_section_when_absent(self, tmp_path: Path):
         path = generate_report(_minimal_report(), tmp_path, {"include_plots": False})
         content = path.read_text(encoding="utf-8")

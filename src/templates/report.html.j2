@@ -207,6 +207,8 @@
   <!-- Semantic Leakage Analysis (LLM, Phase 16, opt-in) -->
   {% if report.semantic_results %}
   {% set sem = report.semantic_results[0] %}
+  {% set all_assessments = sem.details.get('assessments', []) %}
+  {% set flagged_assessments = all_assessments | rejectattr('risk_level', 'equalto', 'none') | list %}
   <div class="card">
     <h2>Semantic Leakage Analysis (LLM)</h2>
     <p class="meta">
@@ -214,13 +216,13 @@
       <span class="badge b-{{ sem.severity }}">{{ sem.severity.upper() }}</span>
       &nbsp;{{ sem.message }}
     </p>
-    {% if sem.details.get('assessments') %}
+    {% if flagged_assessments %}
     <table style="margin-top:14px;">
       <thead>
         <tr><th>Feature</th><th>Risk</th><th>Type</th><th>Reasoning</th><th>Suggested action</th></tr>
       </thead>
       <tbody>
-      {% for a in sem.details['assessments'] %}
+      {% for a in flagged_assessments %}
       <tr>
         <td class="mono">{{ a.feature_name }}</td>
         <td><span class="badge b-{{ a.risk_level }}">{{ a.risk_level.upper() }}</span></td>
@@ -231,8 +233,11 @@
       {% endfor %}
       </tbody>
     </table>
+    {% else %}
+    <p class="meta" style="margin-top:14px;">No semantic leakage risk detected across {{ all_assessments | length }} feature(s) analysed.</p>
     {% endif %}
     <p class="meta" style="margin-top:10px;">
+      {{ flagged_assessments | length }} of {{ all_assessments | length }} feature(s) flagged &bull;
       Provider: <strong>{{ sem.details.get('provider', '—') }}</strong>
       &bull; Model: <strong class="mono">{{ sem.details.get('model_id', '—') }}</strong>
     </p>

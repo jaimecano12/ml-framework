@@ -42,8 +42,8 @@ Institución: Illinois Institute of Technology
 | Demo notebook | `notebooks/framework_demo.ipynb` | — | ✅ |
 | Paper | `paper.tex`, `paper.pdf` (15 pages) | — | ✅ |
 
-**Total: 331 tests, 331 passed** (325 al cierre de Fase 17; +6 en la integración de AWS Bedrock,
-ver sección correspondiente más abajo).
+**Total: 343 tests, 343 passed** (325 al cierre de Fase 17; +6 en la integración de AWS Bedrock;
++9 al conectar el módulo semántico al pipeline real — ver secciones correspondientes más abajo).
 
 ---
 
@@ -108,7 +108,7 @@ ml-framework/
 │   ├── templates/report.html.j2    — HTML template (inline CSS, no deps)
 │   └── utils.py                    — CheckResult, FrameworkReport, Recommendation,
 │                                     DimensionScore, ReadinessScore, load_dataset
-├── tests/                          — 331 tests across 13 test files
+├── tests/                          — 343 tests across 13 test files
 ├── main.py                         — CLI: --config --dataset --output-dir --log-level
 └── requirements.txt                — all deps including streamlit, openai
                                        (boto3 for AWS Bedrock: optional extra, not pinned here)
@@ -166,6 +166,8 @@ L(f) = 0.35·ρ(f) + 0.35·Ĩ(f;y) + 0.30·π(f)
 - Devuelve `SemanticRiskAssessment` por feature: risk_level (none/low/medium/high) + leakage_type (temporal/proxy/post_hoc/indirect)
 - Habilitado con `semantic_leakage.enabled: true` en config.yaml (default: false)
 - Degrada gracefully si no hay credenciales (`EnvironmentError` → `CheckResult` passing con mensaje "skipped")
+- **Conectado al pipeline real desde 2026-07-30** (antes era una función suelta que nadie llamaba) —
+  ver sección "Conexión del módulo semántico al pipeline real" más abajo.
 
 **Evaluación en vivo (2026-07-29, `scripts/evaluate_semantic_leakage.py --provider bedrock`)** sobre
 `data/semantic_benchmark.json` (30 features) — sustituye el resultado mock anterior (P=1.00/R=0.93/F1=0.963):
@@ -423,6 +425,45 @@ a conseguir acceso a Azure se integró **AWS Bedrock** como segundo proveedor de
    de `tfm.tex` (no causada por este cambio, pero corregida de paso para las cifras que sí
    tocaba: fila `test_semantic_leakage.py` y el total).
 4. ✅ **Propagado a la presentación** — ver sección dedicada más abajo.
+
+### Conexión del módulo semántico al pipeline real (2026-07-30)
+
+Hasta este punto `analyse_semantic_leakage()` era una función que nadie llamaba desde el
+pipeline real: `checker.py::run()`, `main.py` y `app/app.py` nunca la invocaban, así que poner
+`semantic_leakage.enabled: true` en `config.yaml` no tenía ningún efecto, y el resultado no
+aparecía ni en el HTML ni en `to_dict()` ni en `FrameworkReport`. Conectado de extremo a extremo:
+
+1. ✅ **`src/config.py`**: `semantic_leakage` ahora tiene defaults reales en `_DEFAULTS`
+   (disabled por defecto) + validación de `provider`/`risk_threshold`, así que
+   `DatasetChecker()` sin config file también funciona.
+2. ✅ **`src/utils.py`**: `FrameworkReport.semantic_results` (incluido en `all_results()` /
+   `failed_checks()` / `summary()`).
+3. ✅ **`src/checker.py`**: `run()` llama a `analyse_semantic_leakage()` si
+   `semantic_leakage.enabled` es true; nuevo parámetro opcional `dataset_description`;
+   `to_dict()` lo exporta.
+4. ✅ **`src/reporting.py` + `report.html.j2`**: nueva sección "Semantic Leakage Analysis (LLM)"
+   en el informe HTML — **solo lista features con `risk_level != "none"`** (antes se listaban
+   las 12 features de Titanic con 11 filas irrelevantes; ahora solo `boat`), con contador
+   "N of M feature(s) flagged".
+5. ✅ **`app/app.py`**: checkbox en sidebar para activarlo + selector de provider (bedrock/azure)
+   + campo de descripción, y pestaña nueva **"🤖 Semantic"**. Rediseñada dos veces:
+   - v1: `st.dataframe` plano (poco atractivo, texto cortado, la única fila relevante enterrada
+     entre 11 "none").
+   - v2 (definitiva): métricas arriba (Status/Features flagged/Severity) + filtro de radio
+     (All/High/Medium/Low, **sin "None"**) + un `st.expander` por feature con badges de color,
+     igual que la pestaña "Recommendations" — y **solo se listan las features flagged**, con un
+     caption indicando cuántas adicionales salieron limpias.
+6. ✅ **9 tests nuevos** (config validation/defaults, checker con `_call_llm` mockeado,
+   agregación en `FrameworkReport`, HTML con/sin la sección, HTML omite `risk=none`).
+   331→340→343 tests totales.
+
+**Verificado con una llamada real a Bedrock** (no mockeada) sobre Titanic vía
+`DatasetChecker` directamente y vía la app de Streamlit real (Playwright + Chromium headless,
+`python -m pip install playwright && playwright install chromium`): el modelo marca `boat`
+como `high`/`post_hoc` de forma independiente — confirmación cruzada del hallazgo estadístico
+de la tesis. Screenshot de verificación tomado y revisado antes de dar el trabajo por bueno
+(no se instaló `chromium-cli`, que es el método preferido de la skill `run` pero no estaba
+disponible; Playwright fue el fallback documentado en la propia skill).
 
 ---
 

@@ -96,7 +96,7 @@ data leakage detection in machine learning.}
 \slide{2}{Agenda}{0:40}{1:00}
 {Señala las cinco secciones con la mano, no las leas palabra por palabra.}
 {In this talk, I will cover five parts. First, why machine learning matters
-today and why data leakage is a problem worth automating. Second, the system
+today and why data leakage is such a critical problem. Second, the system
 I built and the methodology behind it --- this is the core of the talk.
 Third, the experimental results on twelve datasets. Fourth, a quantitative
 benchmark against three established tools. And finally, a short live demo,
@@ -115,32 +115,33 @@ McKinsey's State of AI survey shows the share of organizations using AI in
 at least one business function jumped from fifty percent in 2022 to
 eighty-eight percent this year. The global AI market is valued at roughly
 260 billion dollars in 2025, projected to surpass 1.2 trillion by 2030. But
-this rapid adoption has a cost nobody talks about enough: Gartner estimates
-poor data quality costs the average organization 12.9 million dollars every
-year. So while everyone races to adopt AI, the data feeding these systems is
-too often the weakest link --- and that is exactly the gap this thesis
-addresses.}
+this rapid adoption has a cost nobody talks about enough: according to
+Anaconda's State of Data Science survey, data scientists spend nearly forty
+percent of their time on data preparation and cleaning --- more than they
+spend building or training models. So while everyone races to adopt AI, the
+data feeding these systems is too often the weakest link --- and that is
+exactly the gap this thesis addresses.}
 
 \slide{5}{Models Fail Because of Data, Not Algorithms}{1:30}{3:50}
 {La caja azul de la derecha es la definición: apóyate en ella al decirla.}
 {In machine learning practice, most of our effort goes into models --- but
 most production failures actually trace back to the data: missing values,
 duplicates, class imbalance, distribution drift. And among all data problems,
-one stands out as the most insidious: data leakage. The definition is on the
-right: leakage happens when information about the target reaches the training
-features in a way that will not exist at prediction time. What makes it
+one stands out as the most insidious: data leakage --- information about the
+target reaching the training features in a way that will not exist at
+prediction time. What makes it
 dangerous is that it is completely silent. Every other data problem makes your
 model look worse. Leakage makes it look \emph{better} --- you get inflated
 validation metrics that collapse the moment the model faces real data. This
 has been documented in medicine, in finance, and across large-scale studies.
-So the core question of this thesis is: can dataset quality assessment and
-leakage detection be automated, quantified, and made actionable in a single
-tool?}
+This thesis sets out to automate, quantify, and make actionable exactly that
+kind of detection, in a single tool.}
 
 \slide{6}{A Motivating Example}{1:15}{5:05}
 {Pausa dramática tras decir "one point zero, zero, zero". Señala la flecha.}
-{Let me make this concrete. I trained a logistic regression classifier on a
-dataset containing one engineered leaky feature. Validation accuracy: one
+{To quantify this impact, I wanted to build an example scenario. I trained a
+logistic regression classifier on a dataset containing one engineered leaky
+feature. Validation accuracy: one
 point zero zero zero. Perfect. Any of us would be suspicious of a perfect
 score --- but in a large feature table, with a less extreme leak, this goes
 unnoticed. After removing the leaky features, the honest accuracy is 0.952.
@@ -163,7 +164,8 @@ rather than replacing general-purpose profiling.}
 
 \slide{8}{Objectives and Contributions}{1:05}{7:00}
 {Una frase por tarjeta; los KPI de abajo solo señálalos.}
-{This translates into four contributions. One: a unified, automated framework
+{Closing that gap is exactly what this thesis sets out to do. This
+translates into four contributions. One: a unified, automated framework
 --- twenty checks across five dimensions, plus impact analysis, via a command
 line, a Python SDK, and a web application. Two: a unified Leakage Risk Score
 combining three statistical signals into one flaggable number per feature.
@@ -191,7 +193,8 @@ readiness score, exported as an HTML report and a JSON file.}
 
 \slide{11}{Three Interfaces, One Pipeline}{0:45}{9:00}
 {Señala el código: subraya que son cinco líneas.}
-{The same pipeline is exposed through three interfaces: a CLI for batch runs
+{Now that you have seen how the pipeline works internally, let us look at how
+you would actually use it. The same pipeline is exposed through three interfaces: a CLI for batch runs
 and CI/CD, a Python SDK for notebooks --- as you can see, a full analysis is
 about five lines of code --- and a Streamlit web application for
 non-programmers, which I will demo at the end. There is also a plugin API, so
@@ -199,29 +202,29 @@ teams can register their own domain-specific checks.}
 
 \slide{12}{The 20-Check Catalog}{0:25}{9:25}
 {No leas la tabla. Una frase por idea. Ve rápido, es de referencia.}
-{This is the complete catalog --- I won't read it. Every check returns the
-same structured result, which is what lets failed checks map automatically to
-code-level fixes. The leakage row is where the novelty lives, so let's zoom
-into its fifth element: the unified risk score.}
+{Here we can see the complete check catalog --- I won't read it all. Every
+check works the same simple way: it passes or fails, and tells you exactly
+which columns are affected. The leakage row is where the novelty lives, so
+let's zoom into its fifth element: the unified risk score.}
 
 \slide{13}{Unified Leakage Risk Score L(f)}{1:30}{10:55}
 {Este es EL slide técnico. Ve despacio. Señala cada término de la ecuación.}
 {Here is the first main contribution. The problem with single statistics is
-that each one can be fooled: correlation misses non-linear leaks, mutual
+that each of them can be fooled: correlation misses non-linear leaks, mutual
 information alone is noisy, and both can be diluted by missing values. So for
-every feature I combine three normalized signals. Rho is the association with
-the target --- Pearson correlation for numeric features, Cramér's V for
-categorical ones. I-tilde is mutual information, normalized by the maximum
-across features. And pi is what I call performance inflation: train a model on
-this single feature and measure how close it gets to perfect accuracy ---
-a direct behavioral test of leakage. The weighted combination, 0.35, 0.35,
-0.30, gives a score between zero and one. At 0.7 the framework raises a
+every feature I combine three normalized signals. Rho just measures how
+correlated a feature is with the target. I-tilde is mutual information,
+normalized by the maximum across features. And pi is what I call performance
+inflation: it trains a tiny model on just that one feature and checks how
+close it gets to perfect accuracy. The weighted combination gives a score
+between zero and one. At 0.7 the framework raises a
 warning; at 0.9, an error.}
 
 \slide{14}{Are the Weights Arbitrary? --- Ablation}{1:00}{11:55}
 {Anticipa aquí la pregunta típica del tribunal. Señala la fila roja.}
 {A fair question is whether those weights are arbitrary, so I ran a
-sensitivity analysis on real leaky features from Titanic. The feature
+sensitivity analysis on real leaky features from the Titanic dataset, where
+we are predicting passenger survival. The feature
 \emph{boat} --- the lifeboat number --- is a true leak, but its raw
 correlation is diluted by missing values. Under the default weights it scores
 0.74 and is correctly flagged. Under a correlation-heavy scheme it drops to
@@ -233,15 +236,15 @@ configurable.}
 \slide{15}{Semantic Leakage Analysis with an LLM}{1:00}{12:55}
 {Ejemplo discharge\_date: cuéntalo como una mini-historia.}
 {The second contribution addresses leaks that statistics cannot see at all.
-Imagine an ICU mortality dataset with a feature called
+Imagine an ICU mortality dataset, where we are predicting whether a patient
+survives, with a feature called
 \emph{discharge\_date}. Statistically it may look innocent --- but
 semantically it is obvious: you only know the discharge date after the
 outcome. No statistical test reads feature names. So the framework sends
 feature names, sample values, and a dataset description to a large language
-model --- either GPT-4o-mini through Azure, or Claude Haiku 4.5 through AWS
-Bedrock --- which
-returns a risk level, a leakage type --- temporal, proxy, post-hoc or indirect
---- and a natural-language rationale for each feature. The module is optional,
+model, which evaluates each feature and
+returns a risk level, from none to high, a leakage type --- temporal, proxy, post-hoc or indirect
+--- and a natural-language rationale explaining why. The module is optional,
 provider-agnostic, disabled by default, and degrades gracefully if no
 credentials are present.}
 
@@ -249,15 +252,16 @@ credentials are present.}
 {Ya NO es un caveat, es un resultado. Dilo con la misma seguridad que antes,
 pero ahora con orgullo en vez de disculpa. Señala primero la fila medium,
 luego la tabla de discrepancias.}
-{To evaluate it, I built a manually labelled thirty-feature benchmark and ran
-it live against Claude Haiku 4.5 through AWS Bedrock --- not a mock. At the
-default threshold, medium, the model separates all fourteen risky features
-from the sixteen safe ones with zero errors. At the stricter high threshold
-it makes three disagreements: two recall misses on genuine proxy and
-temporal features, and one case where it flags \emph{treatment\_count} ---
-already documented as ambiguous --- more cautiously than labelled. Because
-this is a live, independent model, these disagreements are real evidence of
-its reasoning, not an artifact of a mock that already knew the answers.}
+{To check if this actually works, I tested it on thirty real feature names I
+labelled by hand --- including cases like the \emph{discharge\_date} example
+I just showed you --- and ran it live against Claude Haiku 4.5 through AWS
+Bedrock. At the model's normal sensitivity setting, it correctly separates
+every risky feature from every safe one, with zero mistakes. If I make it
+stricter, so it only flags the clearest cases, it makes three small,
+understandable errors --- for example, treating one genuinely ambiguous
+feature as riskier than it really is. Because this is a real, independent
+model, and not a script that already knew the answers, these mistakes
+actually tell us something honest about how it reasons.}
 
 \slide{17}{From 20 Checks to One Number}{0:45}{14:40}
 {Chequeo de tiempo: deberías ir por $\approx$14--15 min aquí.}
@@ -280,8 +284,10 @@ configurable in the YAML file.}
 {Izquierda sintéticos, derecha reales. Frase clave: planted vs.\ surprises.
 Ve rápido, la slide se explica sola.}
 {I evaluated the framework on twelve datasets: six synthetic, with defects I
-planted deliberately, and six real-world sets from OpenML and UCI, from
-Titanic to the 48,000-row Adult Census. The synthetic sets verify the
+planted deliberately, and six real-world datasets, all downloaded from
+OpenML, the open machine-learning data repository built on the UCI Machine
+Learning Repository --- ranging from a few hundred rows up to forty-eight
+thousand. The synthetic sets verify the
 framework detects what we planted; the real sets verify it finds surprises
 in the wild.}
 
@@ -297,8 +303,9 @@ Quality noise costs points; leakage costs grades.}
 
 \slide{21}{Case Study: Titanic}{1:15}{17:35}
 {La anécdota estrella de la defensa. Cuéntala con calma y algo de humor.}
-{Why does Titanic --- the most famous teaching dataset in the world --- get a
-B? The framework found two real leaks. First, \emph{name}: with 1,300 unique
+{Titanic is a dataset of 1,309 passengers, where the target is whether each
+one survived --- and it is also the most famous teaching dataset in the
+world. So why does it get a B? The framework found two real leaks. First, \emph{name}: with 1,300 unique
 values it behaves as a row identifier, and its Cramér's V with survival is
 0.999 --- flagged as an error. Second, and more interesting, \emph{boat}: the
 lifeboat number. It scores 0.74 on the unified risk score. Think about what

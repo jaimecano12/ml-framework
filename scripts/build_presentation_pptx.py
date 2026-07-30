@@ -436,7 +436,7 @@ kw = Inches(3.75)
 for value, label in [
     ("88%", "organizations use AI in at least one business function"),
     ("$1.2T+", "projected global AI market size by 2030"),
-    ("$12.9M", "average annual cost of poor data quality per organization"),
+    ("~40%", "of a data scientist's time spent cleaning and preparing data"),
 ]:
     kpi_card(s, value, label, kx, Inches(1.25), w=kw, h=Inches(1.4))
     kx += Inches(4.0)
@@ -476,7 +476,7 @@ va.major_unit = 25
 va.tick_labels.font.size = Pt(11)
 chart.category_axis.tick_labels.font.size = Pt(12)
 note(s, "Sources: McKinsey, State of AI survey (2022–2025)  ·  Statista Market "
-        "Insights (2025)  ·  Gartner data quality research.", y=Inches(6.5))
+        "Insights (2025)  ·  Anaconda, State of Data Science survey.", y=Inches(6.5))
 
 # ======================================================================
 # 4 — The problem
@@ -506,9 +506,9 @@ p.space_before = Pt(6)
 rich(p, "**Data leakage**: information about the target reaches the training "
         "features in a way that will **not exist at prediction time**.",
      size=15, color=UPM_BLUE)
-block(s, "Core question of this thesis",
-      "Can dataset quality assessment and leakage detection be **automated, "
-      "quantified, and made actionable** in a single tool?",
+block(s, "What this thesis sets out to do",
+      "**Automate, quantify, and make actionable** dataset quality assessment "
+      "and leakage detection — in a single tool.",
       Inches(0.7), Inches(5.3), Inches(11.9), Inches(1.4), size=17)
 
 # ======================================================================

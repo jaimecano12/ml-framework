@@ -49,3 +49,20 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Thesis, paper, and presentation deliverables — kept locally, not published.
+# Generator scripts (scripts/build_presentation_pptx.py, scripts/write_section2.py)
+# remain tracked; only the generated documents are ignored here.
+/tfm.tex
+/tfm.pdf
+/tfm.docx
+/tfm-upm.pdf
+/paper.tex
+/paper.pdf
+/presentation.tex
+/presentation.pdf
+/presentation.pptx
+/presentation_script.tex
+/presentation_script.pdf
+~$*.pptx
+~$*.docx

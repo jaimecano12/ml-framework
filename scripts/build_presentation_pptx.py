@@ -680,7 +680,7 @@ chrome(s, "Three Interfaces, One Pipeline", kicker="System & Methodology")
 iface = [
     ("CLI", "main.py — batch runs, CI/CD friendly"),
     ("Python SDK", "DatasetChecker — notebooks and pipelines"),
-    ("Streamlit web app", "seven-tab dashboard for non-programmers"),
+    ("Streamlit web app", "eight-tab dashboard for non-programmers"),
 ]
 iy = Inches(1.4)
 for name, desc in iface:
@@ -1172,8 +1172,8 @@ block(s, "Run it yourself", ["streamlit run app/app.py"],
 box = textbox(s, Inches(7.7), Inches(2.85), Inches(5.0), Inches(1.8))
 tf = box.text_frame
 rich(tf.paragraphs[0],
-     "Seven tabs: overview, quality, leakage, features, sufficiency, impact, "
-     "readiness summary.", size=13, color=GRAY_TXT)
+     "Eight tabs: quality, leakage, features, sufficiency, drift, "
+     "semantic (LLM), recommendations, download.", size=13, color=GRAY_TXT)
 p = tf.add_paragraph()
 p.space_before = Pt(10)
 rich(p, "(Backup: pre-recorded capture and generated HTML report, in case "

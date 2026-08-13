@@ -863,6 +863,70 @@ over/underfull hbox) y verificados visualmente (`paper.pdf`: 15→17 páginas; `
 52→55 páginas) leyendo las páginas exactas de las secciones editadas, no solo grep sobre el
 `.tex`. Suite completa (349 tests) re-verificada tras los cambios: sigue en verde.
 
+### Tercera vuelta del profesor sobre el póster: la cadena de evidencia + dos citas rotas (2026-08-13, misma tarde)
+
+El profesor validó la investigación anterior (lectura del código fuente de ydata-profiling en
+vez de inferir por comportamiento, réplica independiente del mismo fallo en Deepchecks
+PPS=0.0006→0.946, atribución correcta en NSL-KDD a "observaciones por categoría, no
+cardinalidad") como justo lo que convierte "nuestro pipeline tenía un bug" en "un default
+compartido por el ecosistema de herramientas". Pidió 3 arreglos más al póster
+(`poster/sigcite_poster.tex`) antes de la compilación final, que él haría a mano en LaTeX:
+
+1. ✅ **La Tabla 1 no sostenía el argumento del §3** — la tabla solo mostraba `boat` post-fix
+   (V=0.951), así que la afirmación de que "Ĩ y π ya estaban saturados mientras ρ no" no tenía
+   ninguna fila que la respaldara, solo una nota al pie. Arreglado añadiendo una fila
+   `boat (pre-fix)` (V=0.420, Ṽ=0.351, L(V)=0.739, L(Ṽ)=0.715, cardinalidad **27** —no 28,
+   verificado con `pandas` directamente en vez de copiar el 28 que sugería el profesor en su
+   borrador de tabla, ya que pre-fix se cuenta sobre las 486 filas no nulas, 27 categorías
+   únicas, no 28) junto a la fila `boat (post-fix)` ya existente (cardinalidad 28, con la
+   categoría de missingness). §3 reescrito para señalar la fila en vez de repetir los números
+   en prosa.
+2. ✅ **Reconciliar 0.948 vs 0.951** — añadida una cláusula a la caption de la Tabla 2
+   explicando que 0.948 es `boat.notna()` (indicador binario) contra survived, mientras que
+   0.951 (Tabla 1) mantiene las 27 categorías no-missing distintas más una 28ª categoría de
+   missingness — dos formas de medir la misma señal, no una contradicción.
+3. ✅ **Justificar "legítimamente asociado" en NSL-KDD** — añadida una frase explícita: a
+   diferencia de `boat` (post-hoc, asignado después del resultado), `protocol_type`/`service`/
+   `flag` son propiedades observables de la conexión en el momento de la clasificación, no
+   valores registrados después de etiquetar el ataque — mismo criterio que separa leakage de
+   asociación legítima, aplicado consistentemente a ambos datasets.
+
+**Verificación de las 4 referencias pedida explícitamente por el profesor** (agentes de
+búsqueda web independientes contra DBLP/ACM DL/APS/journals.aps.org, no memoria): Kaufman
+et al. 2012 tenía un error real de título — decía "Formalization" en `paper.tex` y en el
+póster, cuando el título correcto (verificado en ACM DL, DBLP, Semantic Scholar) es
+"**Formulation**, detection, and avoidance"; corregido en ambos (`tfm.tex` ya tenía la palabra
+correcta). Kraskov et al. 2004 le faltaba el número de artículo (**066138**, verificado en
+journals.aps.org) en `paper.tex` y en el póster; corregido en ambos (`tfm.tex` ya lo tenía).
+Bergsma 2013 y Tavallaee 2009 (esta última la cita nueva que el profesor pidió verificar
+especialmente): ambas confirmadas exactas tal cual estaban (autores, título, venue, año,
+DOI/páginas) — el aparente desajuste DOI-vs-año de Bergsma (`10.1016/j.jkss.2012.10.002` con
+año de cita 2013) es el patrón normal de Elsevier (DOI con el año de disponibilidad online,
+cita con el año de la edición impresa), no un error.
+
+**Bug de renderizado real encontrado durante la verificación visual** (no solo de contenido):
+`\texttt{FeatureLabelCorrelation}` (23 caracteres, sin puntos de ruptura) desbordaba la
+columna estrecha del póster y se solapaba visualmente con el texto de la columna vecina —
+arreglado con guiones discrecionales manuales (`\texttt{Feature\-Label\-Correlation}`), que
+funcionan en cualquier fuente incluida `\texttt` (a diferencia de la guionización automática,
+que no aplica a fuentes de ancho fijo).
+
+**El póster creció a 3 páginas** tras añadir la fila nueva de Tabla 1 y las clarificaciones de
+caption — el límite de 2 páginas de SIGCITE es real y no negociable. Recuperado el espacio
+sin quitar ningún contenido sustantivo pedido por el profesor: se podó prosa redundante que
+las propias tablas ya hacían innecesaria (p.ej. la restated "antes→después" de `boat` después
+de la Tabla 2, ya visible en las dos filas de la Tabla 1; la frase de `sex`/`embarked` "barely
+move" ya visible numéricamente en la tabla), se comprimió el párrafo de "Practical
+Implications", y se ajustó el espaciado tipográfico (`\intextsep`, `\abovecaptionskip`,
+padding del cuadro `mdframed` de "Key insight", tamaño de fuente de la bibliografía a
+`\small`) — todo dentro de los mismos márgenes de página de `acmart`/`sigconf`, sin tocar la
+geometría. Verificado visualmente página por página tras cada recorte (no solo conteo de
+páginas) hasta confirmar 2 páginas exactas sin solapamientos ni desbordes.
+
+**Pendiente explícito**: el profesor dijo que hará él mismo la compilación final en LaTeX, así
+que no se ha tocado `poster/sigcite_poster_draft.docx` (ya desactualizado desde la ronda
+anterior) ni se ha enviado nada más allá del PDF recompilado.
+
 ---
 
 ## Tesis TFM (tfm.tex)

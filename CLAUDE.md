@@ -467,6 +467,404 @@ disponible; Playwright fue el fallback documentado en la propia skill).
 
 ---
 
+## Revisión del Prof. Yong Zheng + estrategia de publicación (2026-08-12)
+
+El profesor (tutor real: Yong Zheng — "Prof. Yong" en el resto de este fichero, "Prof. Zheng" en
+la correspondencia) revisó `tfm.tex` y `paper.tex` juntos y mandó una lista de errores que había
+que arreglar antes de cualquier submission, más dos opciones de publicación: **Opción A** (poster
+de 2 páginas, ACM SIGCITE, deadline el domingo) y **Opción B** (extender el trabajo ~2-3 meses
+para journal: SoftwareX / Software Impacts / DMLR). Su recomendación: hacer las dos, en secuencia.
+
+Antes de proponer nada se verificó cada punto contra el código real (no se dio nada por
+supuesto) — y aparecieron **dos contradicciones numéricas más que el profesor no había visto**.
+Se decidió seguir su recomendación (A → B) y arreglar todo lo de la Parte 1 de inmediato.
+
+### El bug de Deepchecks (el más serio) — causa raíz encontrada y arreglada
+
+`scripts/benchmark_comparison.py::_detect_deepchecks()` reportaba **0/4** escenarios de leakage
+detectados por Deepchecks (Tabla `tab:detection`), mientras que `run_runtime_benchmark()`
+reportaba que Deepchecks ni siquiera podía ejecutarse ("—", error de compatibilidad NumPy 2.0)
+— contradicción interna real que el profesor señaló. Investigado y confirmado: eran **dos bugs
+distintos**, no una detección genuinamente fallida:
+
+1. `deepchecks.tabular.checks` no importa bajo NumPy ≥ 2.0 (`np.Inf` fue eliminado de NumPy en
+   la versión 2.0; el código interno de Deepchecks 0.19.1 — `performance_bias.py` — todavía lo
+   usa). El `try/except Exception` de `_detect_deepchecks()` convertía ese `AttributeError` en
+   `"detected": False`, confundiendo "no pudo ejecutarse" con "no detectó nada".
+2. Incluso arreglado el entorno, el código original pasaba `FeatureLabelCorrelation(ppscore_threshold=0.8)`
+   — `ppscore_threshold` **no es un parámetro válido** de esa clase (el real es `ppscore_params`;
+   el constructor acepta `**kwargs` así que el error pasaba desapercibido). Nunca se añadía una
+   condición real ni se leía `result.value`, así que `detected` era `False` sin importar los
+   datos.
+
+**Arreglo**: entorno conda aislado `deepchecks_compat` (`python=3.11`, `numpy<2` vía
+`pip install "numpy<2" "scikit-learn==1.4.2" "category-encoders==2.6.3" deepchecks pandas scipy`
+— ojo, hubo que fijar también `scikit-learn` y `category-encoders`, no solo numpy, porque las
+versiones más recientes de esos dos rompen el import de Deepchecks por otras dos razones
+distintas: `sklearn.metrics.get_scorer('max_error')` y `sklearn.utils.Tags` respectivamente).
+`_detect_deepchecks()` reescrito en `scripts/benchmark_comparison.py`: usa
+`IdentifierLabelCorrelation` (con la columna ID declarada como `index_name` del `Dataset`, no
+como feature genérica) para el escenario `id_column`, y `FeatureLabelCorrelation` con
+`add_condition_feature_pps_less_than()` + lectura de `result.value` para los otros tres.
+
+**Resultado real, verificado en el entorno aislado: Deepchecks detecta 3/4** (falla solo
+`id_column` — y por una razón principled, no un fallo: `IdentifierLabelCorrelation` mide
+correlación identificador↔target, y ese escenario sintético tiene un ID aleatorio con
+correlación cero *por construcción*; es un target de detección distinto — riesgo de
+memorización por cardinalidad — al que sí cubre `id_column_leakage` de ml-framework). Runtime de
+Deepchecks también verificado real en el mismo entorno: 0.44s / 0.42s / 3.40s (500/1000/5300
+filas) — ya no hay "—".
+
+Esto obligó a revisar **todas** las afirmaciones "4×"/"0/4"/"mejor alternativa" en ambos
+documentos (Abstract, Introducción, Tabla `tab:detection`, Tabla `tab:runtime`, "Scope of
+comparison", Discussion, Conclusion) — con Deepchecks en 3/4, ml-framework (4/4) ya no es "4×
+mejor", es "el único con 4/4, frente a 3/4 del más cercano". Se reescribió cada mención para que
+la ventaja reportada sea la real (más estrecha, pero defendible — exactamente lo que pedía el
+profesor: *"an honest, narrower advantage is far more publishable"*).
+
+### Otros arreglos de la Parte 1
+
+- ✅ **Contradicción `boat`**: `paper.tex` (Introducción) afirmaba `Pearson |r|=0.97` para `boat`;
+  la Tabla 7 del mismo paper decía `ρ=0.420`. La cifra 0.420 es la correcta (la de la que depende
+  todo el argumento de complementariedad). Reescrito el ejemplo de la introducción para contar la
+  historia correcta: correlación baja (0.420, por debajo del umbral 0.95) que un check de
+  correlación se perdería, pero que el score unificado sí atrapa vía MI + performance inflation.
+- ✅ **Segunda contradicción, no vista por el profesor**: `tfm.tex` (Resumen de contribuciones,
+  §5.1.1) afirmaba `L(f)≥0.83` para toda feature con leakage, pero la Tabla 4.5 que cita muestra
+  `boat=0.739`. Corregido a `≥0.739`, con matiz añadido de que el margen no es uniforme (los
+  proxies sintéticos están en ≥0.99, `boat` mucho más cerca del umbral 0.7 precisamente por su
+  correlación débil).
+- ✅ **Bibliografía en `paper.tex`** (verificado autor real de `narayan2022can` vía arXiv:2205.09911):
+  `rabanser2019failing` "I. Steinwart"→**Z. Lipton**; `zha2023datacentric` "K. Zha"→**D. Zha**;
+  `ydataprofiling` arXiv no relacionado→cita del repo (como ya hacía `tfm.tex`);
+  `narayan2022can`/`narayan2022` autor list incorrecto en **ambos** documentos→corregido a
+  Avanika Narayan, Ines Chami, Laurel Orr, Simran Arora, Christopher Ré en los dos.
+- ✅ **Heart Disease**: verificado que `paper.tex` **ya** cumplía lo que pedía el profesor (solo
+  describe la corrección del encoding, sin mencionar la cifra irreproducible 62/100) — cero
+  trabajo adicional necesario ahí; la discusión más extensa vive solo en `tfm.tex`, donde es
+  apropiada como registro interno.
+- ✅ **Checklist de 29 ítems**: reordenado en `paper.tex` (Abstract + bullet de contribuciones de
+  la Introducción) para que la Detection Rate cuantitativa (4/4 vs 3/4) sea el argumento
+  principal y el checklist quede explícitamente como "supplementary, qualitative capability
+  audit" — sin mover la Sección 6 a un apéndice físico (eso queda pendiente para si se hace la
+  Opción B/journal, ya que el póster de 2 páginas no va a incluir el checklist de todos modos).
+- ✅ **Framing del F1=1.00 semántico**: verificado que `paper.tex` ya solo repite esa cifra en la
+  Sección 4.6 (ya con el matiz de "strong result... not zero-error behaviour in general") — no
+  aparece sin contexto en Abstract/Intro/Conclusion, así que no hacía falta ningún cambio ahí.
+
+Ambos documentos recompilados (`tectonic`, 0 errores) y verificados visualmente
+(Abstract, Tabla `tab:detection`, página del bug de Deepchecks) tras cada tanda de cambios.
+
+**Pendiente de decisión del usuario**: el email de respuesta al profesor ya se envió confirmando
+el plazo del viernes para Deepchecks (con la causa raíz ya resuelta, no es una incógnita). Falta
+por decidir/comunicar cuánto tiempo puede comprometer para la Opción B (2-3 meses que pide el
+profesor probablemente optimista; estimación propia: 4-6 meses reales para los 5 bloques (a)-(e)
+que describe).
+
+### Construcción del póster SIGCITE de 2 páginas (2026-08-13)
+
+El profesor respondió tras ver el primer borrador (ver más abajo): el póster **encaja en SIGCITE
+solo si se reformula el tema de "data leakage and quality" como una cuestión de seguridad**; y
+recomendó dejar solo el hallazgo más fuerte en el póster (1-5 de un hipotético 1-8), reservando
+el resto para la extensión a journal — lo cual, en la práctica, ya se cumplía solo: el póster usa
+exclusivamente resultados que ya existían en `paper.tex` (caso `boat` + ablation de pesos), nada
+del trabajo nuevo de la Opción B.
+
+**Primer intento — Word real del profesor:**
+El profesor adjuntó por email `acm_submission_template.docx` (la plantilla oficial genérica de
+envío de ACM, no algo específico de SIGCITE) — el usuario la tenía en `~/Downloads/` y se localizó
+ahí (`ls -t ~/Downloads/*.docx`). Inspeccionada con `python-docx`: es un documento de instrucciones
+de ~194 párrafos con todos los estilos ACM (`Title_document`, `Authors`, `Abstract`,
+`CCSDescription`, `KeyWords`, `Head1`, `PostHeadPara`, `Para`, `TableCaption`, `FigureCaption`,
+`Bib_entry`, etc.) y texto de relleno/Lorem ipsum a sustituir. Confirmado en el propio texto de la
+plantilla: **la versión de envío es a una sola columna** ("It should remain in a one-column
+format—please do not alter any of the styles or margins"; ACM la convierte a 2 columnas tras la
+aceptación) — así que el límite real de "2 páginas" se aplica al resultado final en 2 columnas, no
+al borrador de revisión en 1 columna (que salió en 4 páginas con el mismo contenido que luego
+ocupó exactamente 2 páginas en `acmart`/`sigconf`, confirmando la equivalencia 1:2).
+
+Reconstruido un nuevo `.docx` con `python-docx` reutilizando los estilos exactos de la plantilla
+(se vacía el `body` del documento original y se reinserta contenido nuevo con los mismos nombres
+de estilo, en vez de partir de cero, para no perder la definición de estilos ACM). Dos bugs reales
+encontrados al verificar el resultado exportando a PDF vía AppleScript+Word
+(`osascript ... open POSIX file ... ; save as active document file format format PDF`):
+1. **Numeración duplicada** ("1 1 MOTIVATION", "[1] [1] Sara Kaufman...") — los estilos `Head1` y
+   `Bib_entry` de la plantilla ya llevan numeración automática de Word (`numPr` en el XML del
+   estilo); el texto añadía el número a mano encima. Arreglado quitando los prefijos manuales.
+2. **Etiqueta de la gráfica solapada con una barra** — reposicionada.
+Gotcha de la automatización con AppleScript: `set theDoc to open POSIX file "..."` no captura una
+referencia usable en Word (error "La variable theDoc no está definida"); hay que hacer `open POSIX
+file "..."` como sentencia suelta y luego referirse a `active document` en el siguiente comando,
+con un `delay` de por medio.
+
+**Giro final — el usuario pidió PDF en vez de Word, y sin Zheng como coautor:**
+Se descartó la ruta Word y se retomó el `.tex` de `acmart`/`sigconf` ya existente
+(`poster/sigcite_poster.tex`), aplicando el mismo contenido con el ángulo de seguridad:
+- Título: "Data Leakage as a Security Blind Spot: A Unified Risk Score Beyond Correlation".
+- `\ccsdesc`/`\keywords` nativos de `acmart` (Security and privacy → Software security
+  engineering / Systems security; Computing methodologies → Machine learning).
+- Caja "Key insight" (`mdframed`) en acento granate justo bajo el título.
+- Tablas con cabecera granate + fila de `boat`/"miss" resaltada; gráfica de barras con verde
+  azulado (pasa el umbral) vs. rojo (falla) en vez de un único color.
+- Un solo autor (Jaime Cano Moraño) — Yong Zheng retirado a petición explícita del usuario.
+Bug real durante la migración: `\usepackage[table]{xcolor}` choca con el xcolor que ya carga
+`acmart` internamente ("Option clash for package xcolor") — solucionado cargando `colortbl` a
+secas (da `\rowcolor` singular, que es lo único que se usa) en vez de xcolor con la opción
+`table`; se eliminó `\rowcolors` (plural, zebra-striping automático) porque esa sí es exclusiva de
+`xcolor[table]` y no tiene sustituto directo sin volver a arrastrar el conflicto.
+Resultado final: `poster/sigcite_poster.pdf`, 2 páginas exactas, compila limpio con `tectonic`.
+
+**Actualización (mismo día): el profesor pidió expresamente la versión Word "para poder re-editarla
+él mismo"** — así que se volvió a `poster/sigcite_poster_draft.docx`, esta vez llevándole el mismo
+pulido visual y el autor único del PDF final (que se había quedado solo en la versión LaTeX): caja
+de "Key insight" como tabla de 1x1 celda sombreada (la plantilla ACM no tiene un estilo de callout
+nativo), cabeceras de tabla en granate con texto blanco (`shade_cell()`/`set_cell_text_white()`
+vía manipulación XML de bajo nivel con `python-docx`, ya que no hay forma de fijar sombreado de
+celda desde la API de alto nivel), fila de `boat`/"miss" resaltada en rosa suave, y la gráfica
+regenerada con el mismo esquema de dos colores (verde azulado/granate) que la versión LaTeX.
+Verificado exportando a PDF vía el mismo flujo de AppleScript+Word ya documentado arriba — sin
+bugs nuevos. Los dos entregables (`.docx` y `.pdf`) están ahora sincronizados en contenido y estilo.
+
+**Pendiente**: confirmar con el profesor si la revisión de pósters de SIGCITE es ciego-doble — si
+lo es, hay que anonimizar (quitar nombre/afiliación) antes de enviarlo definitivamente.
+
+### El profesor tumba el póster de seguridad: el hallazgo real estaba en la missingness de `boat` (2026-08-13)
+
+Segunda ronda de revisión, mucho más dura: el profesor dijo directamente que el póster "is too
+weak to be a poster" y pidió verificar **hoy mismo, antes de nada** si `ρ(boat)=0.420` es un
+hallazgo real o un artefacto de implementación, por dos vías posibles: (a) que `boat` estuviera
+tomando la rama de Pearson en vez de Cramér's V por algún problema de encoding, y (b) que la
+missingez de `boat` (el ~63% de valores ausentes) fuera en sí misma la fuga, y que el pipeline la
+estuviera destruyendo antes de calcular la correlación. Advirtió explícitamente: si (b) resulta
+cierto, el argumento central del póster **se invierte** — un check de correlación bien
+implementado sí atraparía `boat`, y es nuestro propio preprocesado el que lo esconde.
+
+**Verificado con código real, no con argumentos — y (b) resultó ser exactamente cierto:**
+- (a) descartado: `boat` es `dtype=object` (1309 filas, 823 nulos = 62.9%, 27 valores no nulos),
+  así que `_feature_target_association()` sí toma la rama de Cramér's V, no Pearson. El encoding
+  no es el problema.
+- (b) confirmado, y es un hallazgo real: `_cramers_v(boat.notna(), survived)` sobre las **1309
+  filas completas** da **V=0.948** (98.1% de supervivencia cuando hay número de bote asignado,
+  2.8% cuando no) — prácticamente determinista. El `ρ=0.420` que reporta el pipeline hoy es
+  exactamente `_cramers_v(boat, survived)` calculado **solo sobre las 486 filas no nulas**,
+  porque `_feature_target_association()` hace `.dropna()` antes de calcular la asociación,
+  destruyendo la señal más fuerte de la columna. Verificado que el 0.420 reproducido a mano sobre
+  el subconjunto no nulo coincide exactamente con lo que ya devolvía el pipeline.
+- Mecanismo explicado con precisión (verificado con `pd.factorize` directamente): la razón de que
+  `Ĩ(boat)=1.000` y `π(boat)=0.808` ya estuvieran altos en el pipeline actual **no es una ventaja
+  de diseño de las señales multi-signal** como se decía hasta ahora en la tesis/paper — es una
+  **asimetría accidental**: `compute_leakage_risk_score()` factoriza las categóricas con
+  `pd.factorize()` antes de MI/π, y `factorize` codifica los NaN como `-1` (un código propio, no
+  como `np.nan`), así que `SimpleImputer(strategy="mean")` no los toca — el missingness sobrevive
+  intacto para MI/π. Pero `_feature_target_association()` (la que calcula `ρ`) hace `.dropna()`
+  directamente sobre la serie original, sin pasar por `factorize`, así que ahí sí se pierde. Dos
+  rutas de código con tratamiento de NaN inconsistente entre sí — ese es el verdadero motivo del
+  patrón "MI/π saturan, ρ no", no una propiedad general de la información mutua.
+
+**Bergsma (2013) implementado también, con resultado limpio**: `_cramers_v_bias_corrected()`
+añadida a `src/leakage_checks.py` (fórmula exacta que dio el profesor, verificada contra
+[el paper original](https://link.springer.com/article/10.1016/j.jkss.2012.10.002) por búsqueda
+web) + 4 tests nuevos en `tests/test_leakage_checks.py` (343→347 tests, todos pasan). Resultado
+en Titanic: `name` V=0.999→corregido=**0.000** (colapso completo, exactamente lo que predijo el
+profesor); `sex`/`embarked` (columnas de baja cardinalidad, "bien comportadas") apenas se mueven
+(0.529→0.528, 0.184→0.180), confirmando que la corrección ataca específicamente la dispersión, no
+la asociación genuina. **Decisión de alcance**: la función se añadió, se testeó y se documentó,
+pero **no** se cambió el comportamiento por defecto de `check_target_leakage()` ni de
+`compute_leakage_risk_score()` para usarla automáticamente — hacerlo cambiaría números ya
+publicados en `tfm.tex`/`paper.tex` (p.ej. "`name` Cramér's V=0.999" aparece en varias tablas) y
+es una decisión mayor que no se tomó unilateralmente; queda pendiente de que el usuario la pida
+explícitamente.
+
+**Póster reescrito de cabo a rabo** (`poster/sigcite_poster.tex` y `.docx`), estructura nueva
+propuesta por el profesor: título sin ángulo de seguridad ("Cramér's V Fails in Both Directions:
+A Diagnostic Case Study of Categorical Leakage Screening on the Titanic Dataset"); Motivación
+recortada a 1 párrafo con una sola frase de contexto de seguridad (antes había 3-4 metáforas
+repetidas sin threat model, exactamente la crítica del profesor) y desambiguación explícita de
+"leakage" = target leakage, no brecha de seguridad; sección nueva "The Two Failures" como núcleo
+(Tabla 1 revisada: cardinalidad, singletons, V crudo/corregido, MI, π, L y verdad de terreno para
+`name`/`boat`/`sex`/`embarked` — ya no incluye los proxies sintéticos, que el profesor señaló como
+"trivially detectable... carry no argumentative weight"; Tabla 2 nueva de missingness); **la
+Tabla 2 antigua (ablation de pesos) y la Figura 1 (gráfica del ablation) se eliminaron
+completamente** — el profesor demostró que esa tabla era matemáticamente determinista a partir de
+la Tabla 1 y no aportaba información nueva; sección "Why Multiple Signals Help" reducida a un
+párrafo sin tabla, dejando explícito que "we do not present this weighted sum itself as a
+research contribution". Arregladas también las dos citas: Kraskov (nunca citada en el texto, en
+la versión anterior) ahora se cita al introducir la estimación de MI; Bergsma añadida como
+referencia nueva.
+
+Recompilado y verificado visualmente en LaTeX (`tectonic`, 2 páginas, 0 errores) y en Word (mismo
+flujo AppleScript+Word de antes, 3 páginas a una columna ≈ menos de 2 en el formato final a dos
+columnas). Ambos formatos sincronizados en contenido.
+
+**Nota para el futuro**: la explicación de la asimetría ρ-vs-(MI,π) descrita arriba es más precisa
+y más honesta que la que aparece hoy en `tfm.tex`/`paper.tex` (que la presenta como una ventaja de
+diseño del score unificado, sin mencionar que es en parte un accidente de cómo `pd.factorize`
+trata los NaN). No se ha tocado la tesis/paper todavía — el usuario no lo ha pedido para esta
+ronda, centrada en el póster — pero si se retoma la Opción B (journal) o una futura revisión de la
+tesis, esta es una corrección pendiente real, no solo una mejora de redacción.
+
+### Segunda vuelta del profesor: "esto sigue siendo débil" — arreglar el bug de verdad, replicar en NSL-KDD (2026-08-13, misma tarde)
+
+El profesor validó la verificación anterior ("this is exactly the right way to handle it... the
+dropna-vs-factorize finding is a better contribution than the thing it replaced") pero encontró
+que el póster reformulado **seguía sobrevendiendo el hallazgo**: solo una de las dos fallas
+(`name`) es una propiedad genuina de Cramér's V; la otra (`boat`) es un bug de nuestro propio
+preprocesado, no una propiedad de la estadística — y publicarlo como "V falla en ambas
+direcciones" invita exactamente esa objeción. Pidió 6 cosas: reencuadre honesto + comprobar si
+`ydata-profiling`/Deepchecks tienen el mismo bug (30 min), arreglar el bug de verdad (no solo
+diagnosticarlo) y reportar antes/después, arreglar la Tabla 1 (L se computaba con la V cruda pese
+a recomendar la corregida), dejar explícito que son dos fallos con dos remedios distintos (la
+corrección de Bergsma no arregla `boat`), añadir contenido de encaje temático con SIGCITE
+(Cybersecurity/IT Ed.) incluyendo una réplica en NSL-KDD, y confirmó que seré primer autor con él
+como segundo si esto llega a enviarse.
+
+**Comprobación del ecosistema (los 30 min que pidió) — confirmado, no es solo nuestro bug:**
+- `pandas.crosstab` descarta filas con NaN por defecto, verificado empíricamente
+  (`pd.crosstab(['a','b',nan,...], ...)` — la fila con NaN desaparece de la tabla de contingencia).
+- **`ydata-profiling` tiene exactamente el mismo bug**, confirmado leyendo su código fuente real
+  (`ydata_profiling/model/pandas/correlations_pandas.py::_pairwise_cramers()`): llama
+  `pd.crosstab(col_1, col_2)` directamente, sin tratar los missing aparte.
+- **Deepchecks también**, confirmado empíricamente en el entorno `deepchecks_compat`: PPS de
+  `FeatureLabelCorrelation` sobre `boat` con los NaN reales = **0.0006** (prácticamente cero);
+  sobre `boat.notna()` como indicador explícito = **0.946**. Mismo fallo, motor distinto (PPS vía
+  árboles de decisión, no Cramér's V).
+- Esto cambia el argumento de "nuestro pipeline tenía un bug" a "es el comportamiento por defecto
+  compartido por el ecosistema de herramientas" — justo lo que pedía el profesor para poder
+  reencuadrar el título sin sobrevender.
+
+**El bug arreglado de verdad en `src/leakage_checks.py::_feature_target_association()`** (no solo
+diagnosticado): para columnas categóricas, ya no se hace `.dropna()` sobre la fila completa antes
+de calcular Cramér's V — solo se descartan filas con **target** desconocido (no se puede asociar
+con una etiqueta que no existe), y los valores de **feature** ausentes se codifican como su propia
+categoría explícita `"__missing__"`, exactamente igual que ya hacía `pd.factorize()` en la ruta de
+MI/π (que asigna a los NaN su propio código `-1`, no `np.nan`). 2 tests nuevos en
+`tests/test_leakage_checks.py` (349 tests totales, todos pasan; verificado que ningún test
+existente se rompe con el cambio de comportamiento).
+
+**Resultado del arreglo, antes → después (todo verificado con el pipeline real, no a mano):**
+- `ρ(boat)`: 0.420 → **0.951**
+- `L(boat)`: 0.739 (warning) → **0.925** (**error** — cruza el umbral 0.9)
+- `name`/`sex`/`embarked`: sin cambios (no tienen missingness informativa que rescatar)
+- Con la V corregida (Bergsma) alimentando L en vez de la cruda: `L(name)`=0.058 (no 0.407),
+  separando limpiamente `name` (0.058) de `sex` (0.405) — arreglado el problema de la Tabla 1 que
+  señaló el profesor (antes `name` y `sex` puntuaban casi igual bajo L, invitando la objeción obvia
+  de que el score no distinguía entre ambos).
+- Confirmado explícitamente que la corrección de Bergsma **no** arregla `boat` (0.420→0.351 antes
+  del fix; 0.951→0.940 después) — son dos remedios distintos para dos fallos distintos, tal y como
+  pidió el profesor que se dejara explícito.
+- `Ṽ(name)=0.000` documentado como el suelo recortado del estimador (`max(0, ·)`), no un cero
+  exacto casual.
+
+**Réplica en NSL-KDD** (descargado de `jmnwong/NSL-KDD-Dataset` en GitHub, 125.973 filas,
+`protocol_type`/`service`/`flag` con cardinalidad 3/70/11 contra una etiqueta binaria
+ataque/normal): resultado **negativo**, tal y como el profesor dijo que sería aceptable — V cruda
+y corregida son numéricamente indistinguibles en las tres columnas (0.282/0.282, 0.860/0.860,
+0.775/0.775), porque ninguna es lo bastante dispersa (solo 1 categoría singleton en `service` de
+70, frente a 1.305 de 1.307 en `name`) — confirma que el mecanismo de sesgo depende de la escasez
+de observaciones por categoría, no de la cardinalidad por sí sola. 0% de missingness en las tres
+columnas (dataset sintético, sin datos ausentes reales), así que esta réplica aísla el mecanismo
+de sesgo sin mezclar con el de missingness. Las tres columnas están genuinamente asociadas con el
+ataque por diseño (no es leakage), así que no hay caso falso-positivo/negativo que reportar aquí —
+solo la confirmación honesta de que el mecanismo no aparece a esta escala.
+
+**Póster reescrito otra vez** (`poster/sigcite_poster.tex`): título nuevo sin la palabra
+"security" como eje ("Two Failure Modes in Categorical Target-Leakage Screening: Sparsity Bias
+and Complete-Case Deletion"); Tabla 1 ampliada a `table*` (ancho completo, 2 columnas de LaTeX)
+con L(V) y L(Ṽ) lado a lado; nueva sección "Negative Replication on NSL-KDD" con su propia tabla;
+sección 3 renombrada explícitamente a "Why Multiple Signals Help—And Why One Fix Does Not Cover
+Both Failures"; añadidas las dos frases de cierre sobre Titanic en instrucción introductoria de
+ML; referencia nueva a Tavallaee et al. 2009 (paper original de NSL-KDD, verificada por búsqueda
+web). Compila limpio en `tectonic`, exactamente 2 páginas, verificado visualmente.
+
+**Decisión de alcance explícita**: el profesor dijo "Do not worry about the format, I will
+eventually re-edit it on Latex" — así que **no** se actualizó `poster/sigcite_poster_draft.docx`
+en esta ronda; ha quedado desactualizado/obsoleto a partir de aquí. El `.tex`/`.pdf` es ahora la
+única versión autoritativa. Tampoco se ha tocado `tfm.tex`/`paper.tex` con los números
+post-arreglo (`name` V=0.999, `boat` L=0.739) — el profesor fue explícito en que la corrección de
+Bergsma no debe alterar retroactivamente las cifras ya publicadas en la tesis, y que la corrección
+del framing de complementariedad "genuina" en ambos documentos "is not urgent this week", queda
+en la lista para antes de la submission a journal.
+
+**Nota de autoría confirmada por el profesor**: si esto se llega a enviar, Jaime es primer autor,
+Yong Zheng segundo.
+
+### Propagación del arreglo del bug de missingness a `paper.tex` y `tfm.tex` (2026-08-13)
+
+Tras arreglar el bug real en `_feature_target_association()` (ver sección anterior) y
+reescribir el póster alrededor del nuevo framing honesto, el usuario pidió corregir también
+la tesis y el paper con los mismos hallazgos — hasta este punto ninguno de los dos
+documentos reflejaba el arreglo, y ambos seguían citando los números pre-fix (`boat`
+ρ=0.420, L=0.739; Titanic 80.6/B, 14/22) como si fueran vigentes.
+
+**Verificación previa (antes de tocar ningún documento):** se re-ejecutó `DatasetChecker`
+sobre los 12 datasets de evaluación (9 real-world/LRS-validation + los usados en case
+studies) para confirmar el alcance exacto del impacto. Resultado: **solo Titanic cambia**
+(80.6/B, 14/22 → **75.4/B, 12/22**; sigue siendo grado B). Los otros 8 datasets reales y los
+3 sintéticos de validación LRS son idénticos byte a byte. La tabla de ablation de pesos
+también se recalculó completa con el ρ corregido: los 5 esquemas de pesos ahora coinciden en
+marcar `boat` (Default=0.925, Equal=0.920, Correlation-heavy=0.927, MI-heavy=0.940,
+Performance-heavy=0.892 — todos ≥0.7), frente al resultado pre-fix donde el esquema
+correlation-heavy fallaba (0.662, bajo el umbral). Además, `check_target_leakage()` ahora
+marca **tanto `name` (V=0.999) como `boat` (V=0.951)** — antes solo marcaba `name`, ya que
+0.420 estaba por debajo del umbral 0.95.
+
+**Decisión de framing:** en vez de descartar la tabla de ablation antigua o buscar un
+ejemplo ilustrativo distinto, se mantuvo `boat` como caso de estudio pero añadiendo una
+columna **"boat (pre-fix)"** en la tabla de ablation que reproduce los números originales
+(buggy) junto a los corregidos — preserva el valor pedagógico de la tabla (mostrar qué
+pasaba con pesos correlation-heavy) mientras dice honestamente que ese resultado era
+evidencia de un bug, no una propiedad del peso elegido. La narrativa de "los tres señales
+son genuinamente complementarias" se reescribió a la explicación honesta ya usada en el
+póster: MI/π ya estaban saturados por una asimetría de implementación
+(`pd.factorize` codifica NaN como código propio, no como `np.nan`, así que
+`SimpleImputer` nunca los tocaba; pero `_feature_target_association()` sí hacía
+`.dropna()` directo), no por una ventaja de diseño del score combinado. El caso de `name`
+(sparsity bias genuino de Cramér's V, arreglable con Bergsma) se mantiene como el ejemplo
+honesto de "por qué combinar señales sigue teniendo sentido", separado explícitamente del
+caso de `boat`.
+
+**Ubicaciones corregidas en ambos documentos** (números, no solo prosa):
+introducción/resumen (ejemplo motivador reescrito para contar la historia de missingness +
+ρ=0.951, en vez de "ρ=0.420, correlación lo pierde"); tabla y párrafo de "Weight
+sensitivity" (con la nueva columna pre-fix); tabla de validación LRS (`tab:lrs`, fila
+`boat`: ρ 0.420→0.951, L 0.739→0.925); tabla de readiness scores y su gráfica de barras
+(Titanic 80.6→75.4); tabla y prosa de case studies (`boat` ahora también detectado por
+`target_leakage`, no solo por el score unificado); párrafo de Discussion/Discussion of
+Results ("genuinely complementary" reescrito a "two genuine failure modes... two remedies");
+párrafo de Limitations/Current Limitations (Bergsma ya no es future work, está implementado
+en `src/leakage_checks.py`, con nota explícita de que no se ha hecho default todavía);
+seguridad relacionada — 3 sitios adicionales en `tfm.tex` donde `boat` se usaba como ejemplo
+de "fuga que la correlación no puede detectar" para motivar el módulo semántico (resumen
+ES/EN + un párrafo de metodología) se corrigieron sustituyendo `boat` por
+`discharge_code`/`future_usage` (los ejemplos ya usados de forma consistente en el resto
+del documento), porque tras el fix esa afirmación ya no es cierta para `boat` específicamente.
+
+**Conteo de tests actualizado 343→349** en todas las tablas/menciones de `tfm.tex` (la
+tabla de distribución por fichero: `test_leakage_checks.py` 50→56 tests, tras sumar los 4
+tests de Bergsma + los 2 de missingness añadidos en esta misma ronda de bugs). `paper.tex`
+no menciona el conteo total de tests en ningún punto, así que no necesitó cambios ahí.
+
+**Bibliografía**: se añadió una entrada real de Bergsma (2013) a la bibliografía de ambos
+documentos (antes solo se citaba como "Bergsma's (2013)" en prosa, sin `\bibitem`/`\cite`,
+en ambos ficheros) y se convirtieron las menciones en prosa a `\cite{bergsma2013bias}` /
+`\cite{bergsma2013}`.
+
+**No tocado deliberadamente**: la corrección de Bergsma (V̄) sigue sin ser el default de
+`check_target_leakage()`/`compute_leakage_risk_score()` — ambos documentos ahora lo dejan
+explícito como decisión de alcance, no como omisión. La tabla de fases históricas de
+`tfm.tex` (`tab:phases`, 16 comprobaciones por fase) no se reequilibró fila a fila (los 6
+tests nuevos de esta ronda no pertenecen a ninguna fase original de las 17); solo se
+actualizó el total final con una nota aclaratoria, siguiendo el mismo precedente que la
+inconsistencia aritmética preexistente de esta tabla ya documentada en la ronda de Bedrock
+(ver nota de 2026-08-06 sobre esta misma tabla).
+
+Ambos documentos recompilados con `tectonic` (0 errores; solo warnings preexistentes de
+over/underfull hbox) y verificados visualmente (`paper.pdf`: 15→17 páginas; `tfm.pdf`:
+52→55 páginas) leyendo las páginas exactas de las secciones editadas, no solo grep sobre el
+`.tex`. Suite completa (349 tests) re-verificada tras los cambios: sigue en verde.
+
+---
+
 ## Tesis TFM (tfm.tex)
 
 - **Archivo:** `tfm.tex` / `tfm.pdf` (50 páginas, formato UPM — Máster Universitario en Ingeniería de Telecomunicación, ETSIT).
@@ -478,15 +876,24 @@ disponible; Playwright fue el fallback documentado en la propia skill).
   - Subsubsecciones: cursiva azul, mayúsculas.
   - Índice (ToC) y cabeceras de página: se mantienen en Title Case normal (solo el título en la propia página va en mayúsculas) para legibilidad.
   - `tfm-upm.pdf` sigue siendo el fichero de referencia oficial, **no tocar**, sin trackear en git.
-- **Estructura actual (6 capítulos + 2 anexos):**
+- **Estructura actual (5 capítulos + 2 anexos — verificada por grep de `\upmchapter{}` el 2026-08-06,
+  ver nota de corrección más abajo):**
   1. Introduction and Objectives
-  2. Development (Estado del arte, Arquitectura, Metodología, Implementación, Resumen de fases)
-  3. Results
-  4. **Tools** (separado de Development: 4.1 Tools Used During Development, 4.2 Tools Used During Testing and Evaluation)
+  2. State of the Art and Related Work
+  3. Development (Arquitectura, Metodología, Implementación — incl. §3.3 "Tools Used During
+     Development" y §3.3(bis) "Tools Used During Testing and Evaluation" como **subsecciones**,
+     no como capítulo propio, ver nota abajo — , Resumen de fases)
+  4. Results
   5. Conclusions and Future Research (incluye Bibliografía como capítulo automático vía `thebibliography`)
   Anexo A: Ethical, Economic, Social, and Environmental Aspects
   Anexo B: Economic Budget (tabla única: Cost of Labor / Cost of Material Resources / General Overheads + Industrial Profit / Subtotal + VAT / Total — ver detalle abajo)
   - Front matter: Resumen, Summary, **Acronyms**, Contents, List of Figures, List of Tables.
+  - ⚠️ **Nota (2026-08-06):** esta entrada decía antes "6 capítulos" con un capítulo 4 "Tools"
+    separado (creado tras el feedback del ponente del 2026-06-24, ver sección de abajo). En algún
+    punto posterior no documentado, "State of the Art" pasó a ser capítulo propio (2) y "Tools" se
+    replegó a subsecciones dentro de "Development" (3) — el `\upmchapter{}` de Tools ya no existe
+    en `tfm.tex`. La lista de arriba refleja el `tfm.tex` real tal y como está hoy; si se vuelve a
+    reestructurar, actualizar aquí.
 
 ### Feedback del Ponente/tutor en España (2026-06-24)
 
@@ -502,6 +909,129 @@ disponible; Playwright fue el fallback documentado en la propia skill).
 2. ✅ **Pulido de redundancia narrativa + auditoría final de cifras** (commit `0b0cdd3`): la explicación completa del caso `boat`/`name` (Titanic) se contaba 3 veces por documento; recortada para que el caso de estudio remita a Discussion. Cifras "29 checks" sueltas sin el framing "checklist" corregidas. Añadidos CD/VAT a Acrónimos (CI se añadió y luego se quitó, ver punto 4).
 3. ✅ **Estilo de cabeceras de tfm.tex** (commit `b4ea399`) → ver sección de estilo visual arriba.
 4. ✅ **Presupuesto bajado y simplificado** (commit `05fdaac`), siguiendo el ejemplo visual de Anexo B del TFG de referencia: tabla única por secciones (en vez de 3 tablas separadas), beneficio industrial calculado sobre CD (no CD+CI, igual que el TFG de referencia), tarifa bajada de €35/h a €15/h (manteniendo las 312h ya justificadas en la Tabla 2.5 de fases), 2 partidas de material (portátil amortizado + tokens API) en vez de 3. **Total: €16,436.92 → €7,086.24.** Acrónimo "CI" eliminado (ya no se usa "Indirect Costs" como concepto propio en la tabla simplificada).
+
+### Auditoría final de consistencia + pulido de redacción en paper.tex y tfm.tex (2026-08-06)
+
+Lectura completa de ambos ficheros (`paper.tex` 1397 líneas, `tfm.tex` 2735 líneas) línea por
+línea, cruzando cifras entre ambos documentos y contra el código/tests reales. No solo pulido de
+prosa: aparecieron **bugs de contenido reales**, no solo de redacción. Ninguno de estos ficheros
+está trackeado en git (ver sección de GitHub cleanup más abajo), así que estos cambios solo
+existen en local — no hay commit asociado.
+
+1. ✅ **Caption "two models for Titanic, three for the others"** (Tabla de readiness scores, en
+   ambos documentos) — Pima Diabetes también usa 2 modelos (`diabetes_config.yaml` solo tiene
+   `logistic_regression`+`random_forest`, igual que `titanic_config.yaml`; los datasets sintéticos
+   usan `config.yaml` con los 3). El caption decía "three for the others" implicando que Diabetes
+   tenía 3 — la tabla (19/22) siempre estuvo bien, el caption estaba mal. Corregido en los dos
+   ficheros para nombrar explícitamente "Titanic and Pima Diabetes" vs "the synthetic datasets".
+2. ✅ **Error gramatical en español** (resumen de `tfm.tex`): "Titanic, Adult Census **e** German
+   Credit" → "**y** German Credit" ("e" solo sustituye a "y" ante sonido /i/, no ante "German").
+3. ✅ **"13 test files" vs 14 reales** (`tfm.tex`, dos menciones) — la propia tabla `tab:tests` ya
+   listaba 14 ficheros que suman 343 correctamente; solo el texto decía "13". Corregido a 14.
+4. ✅ **Nombre de fichero incorrecto en la tabla de tests**: `test_drift_checks.py` → el fichero
+   real es `tests/test_drift.py` (verificado con `ls tests/`).
+5. ✅ **Ejemplo de plugin con firma de API incorrecta** (`tfm.tex`, Listing 3.4): usaba
+   `@register_check("my_custom_check")` (un argumento posicional); la firma real en
+   `src/plugins.py` es `register_check(phase: str, name: str)` — dos kwargs. Corregido el listing
+   completo (decorador + los `CheckResult(...)` internos, renombrados a `"no_future_dates"` para
+   consistencia).
+6. ✅ **Descripción de pestañas de Streamlit duplicada y no sincronizada** (`tfm.tex`, §3.1 "User
+   Interfaces" en el capítulo Development) — una versión antigua/distinta de la que ya existía
+   correctamente en §3.3.4 "Web Interface" (esta última ya se había corregido en una sesión previa,
+   ver más abajo). La de §3.1 aún decía "a eight-tab dashboard: dataset overview, quality checks,
+   leakage detection, feature analysis, sufficiency, impact analysis, and a readiness score summary"
+   (7 ítems, ninguno coincide del todo con las 8 pestañas reales). Reescrita para coincidir
+   exactamente con la lista real: Quality, Leakage, Features, Sufficiency, Drift, Semantic,
+   Recommendations, Download.
+7. ✅ **Gramática "a eight-tab" → "an eight-tab"** (2 ocurrencias en `tfm.tex`, "eight" empieza por
+   sonido vocálico).
+8. ✅ **Cifra de runtime fabricada/no verificada**: el Anexo de Environmental Considerations
+   afirmaba que Adult Census (48.842 filas) corre en "under ten seconds", citando
+   `Table~\ref{tab:runtime}` — esa tabla solo cubre hasta 5.300 filas, nunca midió Adult Census.
+   Medido en vivo (`DatasetChecker.run()` sobre `data/raw/adult.csv`, config por defecto, 3 modelos
+   de impact analysis): **51.77 s**, reproducible entre ejecuciones (semillas fijas). Corregido el
+   texto para citar la tabla solo donde aplica (hasta 5.300 filas) y dar la cifra real medida
+   ("under a minute") para Adult Census, sin atribuirla a una tabla que no la contiene.
+9. ✅ **Partida de presupuesto con proveedor LLM incorrecto** (Anexo B, `tfm.tex`): la tabla listaba
+   "Azure OpenAI API tokens" como coste de material, pero Azure **nunca se usó** (nunca se
+   obtuvieron credenciales, ver sección de `semantic_leakage.py` más arriba) — el proveedor real
+   con coste incurrido es AWS Bedrock. Corregido a "AWS Bedrock API tokens".
+10. ✅ Verificados contra el código real y confirmados correctos (sin cambios): el listing del SDK
+    (`checker.set(leakage_checks__target_leakage__correlation_threshold=...)`,
+    `checker.top_recommendations(priority=...)`) coincide exactamente con `src/checker.py`; el
+    excerpt de `config.yaml` coincide con el fichero real; el conteo "14 source modules"/"21 checks
+    total" en ambas tablas de módulos ya era correcto.
+
+Ambos documentos recompilados con `tectonic` (0 errores en los dos) y cada corrección verificada
+visualmente leyendo la página exacta del PDF resultante (no solo `pdftotext`).
+
+**Nota pendiente:** la sección "Estructura actual" de este mismo fichero (justo arriba) tenía una
+descripción de la estructura de capítulos de `tfm.tex` desactualizada (mencionaba un capítulo
+"Tools" que ya no existe como tal) — corregida en el mismo pase, ver la nota inline de arriba.
+
+### Pasada de control visual sobre tfm.pdf (2026-08-06, mismo día)
+
+Tras la auditoría de contenido de arriba, pasada adicional centrada en el **PDF compilado en sí**
+(no solo el `.tex`): revisadas visualmente portada, página de tribunal, portada interior, Resumen,
+Summary, Acronyms, Índice, Lista de Figuras/Tablas, diagrama de pipeline (Fig. 3.1), gráficas de
+barras (Fig. 4.1/4.2) y listings de código — página por página con la tool `Read` sobre el PDF, no
+solo `pdftotext`.
+
+1. ✅ **Bug real encontrado**: warning `Package fancyhdr Warning: \headheight is too small (12.0pt)`
+   repetido 50 veces en el log (una por página) — la cabecera con el logo (`figures/upm_logo.png`,
+   9pt de alto) necesita 14.5pt y `geometry` solo reservaba 12pt. Corregido añadiendo
+   `headheight=14.5pt` a las opciones de `\usepackage[...]{geometry}` (línea ~6 de `tfm.tex`).
+   0 warnings de este tipo tras el fix; verificado que la cabecera se ve igual visualmente (no hubo
+   regresión al reservar 2.5pt más).
+2. ❌ **Falsa alarma descartada**: el logo ETSIT/UPM de la portada naranja (página 1) se ve con
+   texto diminuto solapado entre "ETSIT" y "UPM" — parecía un bug de la imagen `upm_cover_bg.png`.
+   Comparado pixel a pixel contra `tfm-upm.pdf` (el PDF de referencia oficial, que no se toca): es
+   **idéntico** — así es como se ve el crest institucional real de la ETSIT-UPM en el original. No
+   tocar.
+3. Resto de páginas revisadas (front matter completo, capítulos 1-5, anexos A y B, figuras y
+   tablas): sin defectos visuales — sin overlaps, sin referencias rotas ("??"), sin figuras
+   cortadas. El espacio en blanco al final de algunas páginas antes de un `\upmchapter{}` es
+   comportamiento normal de LaTeX (los capítulos siempre empiezan en página nueva), no un bug.
+
+### Dos bugs de maquetación reales encontrados por el usuario y corregidos (2026-08-06)
+
+Tras la pasada de control visual de arriba, el usuario detectó dos problemas reales que se me
+habían pasado:
+
+1. ✅ **RESUMEN/SUMMARY desperdiciaban una página cada uno** — el resumen en español ocupaba la
+   p.3 completa + "Palabras clave" solo en la p.4 (con el resto en blanco); igual con
+   Summary/Keywords. Causa: `\titlespacing*{\chapter}` tenía demasiado espacio antes/después
+   (`{0pt}{6pt}{14pt}`) y `headsep` (paquete `geometry`) usaba el default de 25pt. Corregido a
+   `\titlespacing*{\chapter}{0pt}{0pt}{8pt}` + `headsep=16pt` en las opciones de `geometry` —
+   ambos resúmenes ahora caben en una sola página cada uno (con "Palabras clave"/"Keywords"
+   incluido). Cambio global (afecta a todos los `\chapter`/`\chapter*`), verificado que no rompe
+   ningún otro chapter opener del documento. **Documento pasó de 53 a 52 páginas.**
+2. ✅ **Listing 3.1 (Python SDK) partido por la Figura 3.1 (pipeline)** — la figura, al no caber
+   en el punto exacto donde se declaraba en el `.tex`, se pospuso (comportamiento normal de los
+   floats de LaTeX) y acabó renderizándose *en medio* del listing de código que venía después en
+   el texto (líneas 1-7 del listing en una página, la figura entera insertada a continuación, y
+   las líneas 8-10 del listing debajo de la figura) — visualmente parecía una superposición.
+   Corregido añadiendo `\usepackage{placeins}` + `\FloatBarrier` justo después de la figura del
+   pipeline (fin de la subsección "Pipeline Architecture"): esto obliga a LaTeX a colocar la
+   figura *antes* de continuar con el texto siguiente, en vez de dejarla flotar más allá. Verificado
+   que la Figura 3.1 y el Listing 3.1 completo (10 líneas) ahora caen juntos y en orden en la misma
+   página, sin interrupciones.
+
+Ambos verificados visualmente en el PDF recompilado tras el fix (no solo por conteo de páginas).
+Si en el futuro aparece un patrón similar (figura flotante que se cuela entre listing y su
+continuación), el mismo `\FloatBarrier` es la solución estándar — considerar añadirlo también tras
+otras figuras del documento si se repite el problema.
+
+3. ✅ **"Contents" compartía página con "Acronyms"** — a diferencia de `\chapter*{RESUMEN}` /
+   `\chapter*{SUMMARY}` / `\chapter*{ACRONYMS}` (que sí fuerzan salto de página por sí solos vía el
+   mecanismo interno de `\chapter*`), el `\tableofcontents` estándar de la clase `report` —pese a
+   llamar también a `\chapter*{\contentsname}` internamente— no estaba forzando el salto de página
+   en este documento (motivo exacto no aislado del todo: posible interacción entre `tocloft` y el
+   `\chapter*` interno de `\tableofcontents`), y además "Contents" se renderiza con el estilo
+   `\chapter*` plano de la clase, no con la barra naranja custom — esto último no se tocó, el
+   usuario solo pidió el salto de página. Arreglado con un `\clearpage` explícito justo antes de
+   `\tableofcontents` (línea ~381). Verificado: "Contents" ahora arranca en página propia, List of
+   Figures/Tables siguen con su barra naranja normal, conteo total de páginas sin cambios (52).
 
 ---
 

@@ -28,21 +28,52 @@ def _cramers_v(x: pd.Series, y: pd.Series) -> float:
     return float(np.sqrt(chi2 / denom))
 
 
+def _cramers_v_bias_corrected(x: pd.Series, y: pd.Series) -> float:
+    """Bias-corrected Cramér's V (Bergsma, 2013).
+
+    Raw Cramér's V is upward-biased on sparse, high-cardinality categorical
+    columns: with few observations per category, chance associations inflate
+    the statistic even when the true association is zero (e.g. a near-unique
+    identifier column can score close to 1.0 against any target purely from
+    small-sample noise). This correction removes that bias:
+
+        phi2_tilde = max(0, phi2 - (r-1)(c-1)/(n-1))
+        r_tilde    = r - (r-1)^2/(n-1)
+        c_tilde    = c - (c-1)^2/(n-1)
+        V_tilde    = sqrt(phi2_tilde / min(r_tilde - 1, c_tilde - 1))
+
+    where phi2 = chi2 / n and (r, c) are the contingency table dimensions.
+    """
+    confusion = pd.crosstab(x, y)
+    chi2, _, _, _ = stats.chi2_contingency(confusion, correction=False)
+    n = len(x)
+    r, k = confusion.shape
+    if n <= 1:
+        return 0.0
+    phi2 = chi2 / n
+    phi2_corrected = max(0.0, phi2 - (r - 1) * (k - 1) / (n - 1))
+    r_corrected = r - (r - 1) ** 2 / (n - 1)
+    k_corrected = k - (k - 1) ** 2 / (n - 1)
+    denom = min(r_corrected - 1, k_corrected - 1)
+    if denom <= 0:
+        return 0.0
+    return float(np.sqrt(phi2_corrected / denom))
+
+
 def _feature_target_association(feature: pd.Series, target: pd.Series) -> float:
     """Return an association score in [0, 1] between *feature* and *target*.
 
     - Numeric features: absolute Pearson correlation against integer-encoded target.
-    - Categorical features: Cramér's V.
+    - Categorical features: Cramér's V, with missing feature values treated as
+      their own explicit category rather than dropped (see note below).
 
     Returns 0.0 when data is insufficient or computation fails.
     """
-    clean = pd.DataFrame({"f": feature, "t": target}).dropna()
-    if len(clean) < 4:
-        return 0.0
-
-    f, t = clean["f"], clean["t"]
-
-    if pd.api.types.is_numeric_dtype(f):
+    if pd.api.types.is_numeric_dtype(feature):
+        clean = pd.DataFrame({"f": feature, "t": target}).dropna()
+        if len(clean) < 4:
+            return 0.0
+        f, t = clean["f"], clean["t"]
         t_enc = (
             pd.factorize(t)[0]
             if not pd.api.types.is_numeric_dtype(t)
@@ -54,8 +85,27 @@ def _feature_target_association(feature: pd.Series, target: pd.Series) -> float:
         except Exception:
             return 0.0
     else:
+        # Categorical features: only drop rows with a missing *target* (an
+        # unknown label cannot be associated with anything). Missing
+        # *feature* values are kept and encoded as their own category
+        # instead of being dropped. Complete-case deletion before an
+        # association test is the default nearly everywhere -- including
+        # pandas.crosstab, and the same pattern is present in ydata-profiling
+        # and in Deepchecks' PPS-based FeatureLabelCorrelation -- but it
+        # silently discards informative missingness (e.g. a column that is
+        # null exactly for the cases with one outcome is itself a leakage
+        # signal). This also matches how compute_leakage_risk_score() already
+        # encodes missing categoricals for mutual information / performance
+        # inflation: pd.factorize() assigns NaN its own code (-1) rather than
+        # np.nan, so those computations never drop missing rows either.
+        valid_t = target.dropna()
+        idx = feature.index.intersection(valid_t.index)
+        if len(idx) < 4:
+            return 0.0
+        f = feature.loc[idx].astype("object").fillna("__missing__").astype(str)
+        t = valid_t.loc[idx].astype(str)
         try:
-            return _cramers_v(f.astype(str), t.astype(str))
+            return _cramers_v(f, t)
         except Exception:
             return 0.0
 

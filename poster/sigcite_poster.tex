@@ -1,0 +1,299 @@
+\documentclass[sigconf,anonymous=false]{acmart}
+
+% --- Draft mode: suppress ACM rights-management block (no DOI/ISBN yet) ---
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\acmConference[Draft for review]{ACM SIGCITE 2026}{November 12--14, 2026}{Wilmington, NC, USA}
+\acmYear{2026}
+\copyrightyear{2026}
+\acmDOI{}
+\acmISBN{}
+\acmPrice{}
+
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{colortbl}
+\usepackage{mdframed}
+\usepackage{pifont}
+
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+\definecolor{diagAccent}{HTML}{1F4E5F}
+\definecolor{diagAccentSoft}{HTML}{E7EEF1}
+\definecolor{flagRed}{HTML}{7A1F2B}
+\definecolor{flagRedSoft}{HTML}{F6E9EA}
+
+\mdfdefinestyle{keyinsight}{
+  linecolor=diagAccent, linewidth=0.9pt,
+  backgroundcolor=diagAccentSoft,
+  innerleftmargin=8pt, innerrightmargin=8pt,
+  innertopmargin=6pt, innerbottommargin=6pt,
+  skipabove=8pt, skipbelow=8pt,
+  roundcorner=3pt,
+}
+
+\begin{document}
+
+\title{Two Failure Modes in Categorical Target-Leakage Screening: Sparsity Bias and Complete-Case Deletion}
+
+\author{Jaime Cano Mora\~{n}o}
+\affiliation{%
+  \institution{Illinois Institute of Technology}
+  \country{USA}
+}
+\email{jcanomorano@hawk.iit.edu}
+
+\renewcommand{\shortauthors}{Cano Mora\~{n}o}
+
+\begin{abstract}
+Categorical target-leakage screening typically thresholds Cram\'er's V.
+We show two independent failure modes on the same statistic, each traceable
+to a standard tooling default rather than to $V$ itself.
+\emph{Sparsity bias}: the Titanic \texttt{name} column scores $V=0.999$
+against survival despite carrying no information, because 1{,}305 of
+1{,}307 names are singleton categories; a bias
+correction~\cite{bergsma2013bias} collapses this to $\widetilde{V}=0.000$,
+while two well-behaved low-cardinality columns barely move
+($\texttt{sex}$: $0.529{\to}0.528$; $\texttt{embarked}$: $0.184{\to}0.180$).
+\emph{Complete-case deletion}: \texttt{pandas.crosstab}, and the PPS-based
+association used by ydata-profiling and Deepchecks'
+\texttt{FeatureLabelCorrelation}, all drop rows with missing feature values
+before testing association---the default nearly everywhere. On Titanic's
+\texttt{boat} column (a post-hoc leak, 62.9\% missing, informative
+missingness), this drops the measured association from $V=0.948$ (full
+data) to $V=0.420$ (non-missing subset only), hiding the leak. We fix this
+in our own pipeline---encoding missingness as an explicit category, matching
+how mutual information already treats it---recovering $V=0.951$ and raising
+our unified score from $\mathcal{L}=0.739$ (warning) to $\mathcal{L}=0.925$
+(error). A negative replication on NSL-KDD (125{,}973 rows; three
+categorical features spanning cardinality 3--70, no missing values)
+confirms the sparsity mechanism requires genuine per-category sparsity, not
+cardinality alone: raw and corrected $V$ are numerically indistinguishable
+there. Neither failure is fixed by tuning a threshold.
+\end{abstract}
+
+\ccsdesc[500]{Computing methodologies~Machine learning}
+\ccsdesc[300]{Mathematics of computing~Statistical paradigms}
+\ccsdesc[300]{Security and privacy~Software security engineering}
+
+\keywords{target leakage, categorical data, Cram\'er's V, bias correction, missing data, data quality}
+
+\maketitle
+
+\begin{mdframed}[style=keyinsight]
+\textbf{Key insight.} Two standard defaults---chi-squared bias on sparse
+categories, and complete-case deletion of missing feature values---each
+break categorical leakage screening in a different, diagnosable way. One is
+fixed by a bias-corrected estimator; the other requires treating
+missingness itself as a feature. Neither fix addresses the other's failure.
+\end{mdframed}
+
+\section{Motivation}
+
+Standard categorical leakage screening thresholds an association statistic,
+usually Cram\'er's V, between each feature and the target. Throughout this
+paper, \emph{leakage} means \emph{target
+leakage}~\cite{kaufman2012leakage}: information about the label that
+enters training but would not be available at prediction time---not a
+security breach or data exfiltration. We show that on a single canonical
+dataset, this statistic fails in two directions for two distinct reasons,
+and that both reasons are properties of standard tooling defaults---not of
+$V$, and not idiosyncratic to our own implementation. The risk is not
+merely academic: near-unique identifier columns and administrative codes
+recorded post-outcome are common in exactly the security- and
+safety-relevant settings---fraud detection, credit scoring, clinical
+triage---where a missed leak is costly.
+
+\section{The Two Failures}
+\label{sec:failures}
+
+Table~\ref{tab:main} reports, for four Titanic columns, cardinality,
+singleton-category count, raw and bias-corrected Cram\'er's V, normalised
+mutual information $\widetilde{I}$, performance inflation $\pi$, the
+unified score $\mathcal{L}$ computed from each version of the correlation
+term ($\mathcal{L}(V) = 0.35V + 0.35\widetilde{I} + 0.30\pi$, and likewise
+for $\mathcal{L}(\widetilde{V})$), and the ground-truth leakage label.
+Reporting $\mathcal{L}$ under both statistics matters: under raw $V$,
+\texttt{name} and \texttt{sex} score almost identically
+($\mathcal{L}{=}0.407$ vs.\ $0.405$) despite one being leaky and the other
+clean; under corrected $\widetilde{V}$, \texttt{name} falls to
+$\mathcal{L}{=}0.058$ and the two are cleanly separated. \texttt{boat}
+reflects our pipeline \emph{after} the fix described below.
+
+\begin{table*}[t]
+\centering
+\caption{Four Titanic columns, raw vs.\ bias-corrected Cram\'er's V, and the
+  unified score computed from each. \texttt{name} is a false positive under
+  raw $V$; \texttt{boat} (shown post-fix) is recovered from a false
+  negative. $^\dagger$Clipped at the estimator's floor, not an exact zero.}
+\label{tab:main}
+\small
+\begin{tabular}{lrrrrrrrrl}
+\toprule
+\rowcolor{diagAccent}
+\textcolor{white}{\textbf{Feature}} & \textcolor{white}{Card.} & \textcolor{white}{Sing.} & \textcolor{white}{$V$} & \textcolor{white}{$\widetilde{V}$} & \textcolor{white}{$\widetilde{I}$} & \textcolor{white}{$\pi$} & \textcolor{white}{$\mathcal{L}(V)$} & \textcolor{white}{$\mathcal{L}(\widetilde{V})$} & \textcolor{white}{\textbf{Truth}} \\
+\rowcolor{flagRedSoft}
+\texttt{name}     & 1307 & 1305 & \textbf{0.999} & 0.000$^\dagger$ & 0.164 & 0.000 & 0.407 & \textbf{0.058} & clean (FP under $V$) \\
+\texttt{boat} (post-fix) & 28 & 4 & 0.951 & 0.940 & 1.000 & 0.808 & \textbf{0.925} & 0.922 & leaky (recovered) \\
+\texttt{sex}      & 2    & 0    & 0.529 & 0.528 & 0.265 & 0.424 & 0.405 & 0.405 & clean \\
+\texttt{embarked} & 3    & 0    & 0.190 & 0.184 & 0.054 & 0.000 & 0.085 & 0.083 & clean \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\paragraph{Why \texttt{name} inflates.}
+With 1{,}309 passengers and 1{,}307 distinct names, 1{,}305 names are
+singleton categories, and chi-squared-based association statistics are
+upward-biased whenever category counts are this sparse relative to sample
+size. The bias correction of Bergsma~\cite{bergsma2013bias},
+\[
+\widetilde{V} = \sqrt{\frac{\max(0,\ \varphi^2 - \frac{(r-1)(c-1)}{n-1})}{\min(\tilde r - 1,\ \tilde c - 1)}},
+\quad \tilde r = r - \tfrac{(r-1)^2}{n-1},\ \tilde c = c - \tfrac{(c-1)^2}{n-1},
+\]
+collapses \texttt{name} to $\widetilde{V}=0.000$---the estimator's clipped
+floor (the $\max(0,\cdot)$ term), not a coincidentally exact zero.
+\texttt{sex} and \texttt{embarked} barely move under the same correction,
+confirming it targets sparsity specifically.
+
+\paragraph{Why \texttt{boat} was missed, and by whom else.}
+Lifeboat assignment was recorded only for passengers whose fate was already
+known, making \texttt{boat} a textbook post-hoc leak, yet on our original
+pipeline it scored only $V=0.420$. The reason is not that correlation is
+blind to this leak in principle: 62.9\% of \texttt{boat} is missing, and
+that missingness is itself almost deterministic of the outcome
+(Table~\ref{tab:missing})---98.1\% of passengers with a boat number
+survived, versus 2.8\% of those without one. \texttt{pandas.crosstab}
+excludes rows with a missing value by default, and this is not a corner
+case we happened to hit: \texttt{ydata-profiling}'s own Cram\'er's V
+implementation calls \texttt{pandas.crosstab} directly, and empirically,
+Deepchecks' PPS-based \texttt{FeatureLabelCorrelation} scores
+\texttt{boat} at essentially zero (PPS $=0.0006$) with real missing values
+present, versus $0.946$ once missingness is encoded as an explicit
+indicator---the same failure, independently. This is a shared default
+across the tooling ecosystem, not an isolated implementation bug.
+
+\begin{table}[h]
+\centering
+\caption{Where the original \texttt{boat} signal was lost.}
+\label{tab:missing}
+\small
+\begin{tabular}{lrr}
+\toprule
+\rowcolor{diagAccent}
+\textcolor{white}{\textbf{Comparison}} & \textcolor{white}{$n$} & \textcolor{white}{$V$} \\
+\texttt{boat}.notna() vs.\ survived (full data) & 1309 & \textbf{0.948} \\
+\rowcolor{flagRedSoft}
+\texttt{boat} vs.\ survived (non-missing only) & 486 & 0.420 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We fixed this in our own pipeline: missing feature values are now encoded
+as an explicit category rather than dropped, matching how mutual
+information already treats them (\texttt{pandas.factorize} assigns missing
+values their own code rather than \texttt{NaN}, so our MI and performance
+terms never dropped this signal---only correlation did). Before $\to$ after:
+$V(\texttt{boat})$: $0.420\to0.951$; $\mathcal{L}(\texttt{boat})$:
+$0.739\to0.925$, crossing from \emph{warning} into \emph{error} severity.
+
+\section{Why Multiple Signals Help---and Why One Fix Does Not Cover Both Failures}
+
+Before the fix, $\widetilde{I}$ and $\pi$ already saturated for
+\texttt{boat} while $\rho$ did not (Table~\ref{tab:main} reflects the
+fixed pipeline; pre-fix, $\mathcal{L}(V){=}0.739$ and
+$\mathcal{L}(\widetilde{V}){=}0.715$, both still above the $0.7$ warning
+threshold), because mutual information estimation~\cite{kraskov2004estimating}
+never dropped the missing rows to begin with. This is a real, useful
+property of combining signals, but it is not the fix for \texttt{boat}: the
+bias correction changes almost nothing for \texttt{boat}, before the fix
+($0.420\to0.351$) or after ($0.951\to0.940$)---sparsity correction and
+missingness-aware association are two different remedies for two different
+failures, and applying one does not substitute for the other. The weights
+$(0.35, 0.35, 0.30)$ are a design choice, not a fitted parameter; we do not
+present the weighted sum itself as a research contribution.
+
+\section{Negative Replication on NSL-KDD}
+\label{sec:nslkdd}
+
+To test whether the sparsity mechanism generalises, we repeated the raw-vs.-corrected
+comparison on NSL-KDD~\cite{tavallaee2009nslkdd} (125{,}973 rows), using its
+three native categorical features against a binary attack/normal label
+(46.5\% attack rate). Table~\ref{tab:nslkdd} reports the result: negative.
+
+\begin{table}[h]
+\centering
+\caption{NSL-KDD: raw and corrected $V$ are indistinguishable at every
+  cardinality tested---no column here is sparse enough to trigger bias.}
+\label{tab:nslkdd}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\rowcolor{diagAccent}
+\textcolor{white}{\textbf{Feature}} & \textcolor{white}{Card.} & \textcolor{white}{Sing.} & \textcolor{white}{$V$} & \textcolor{white}{$\widetilde{V}$} \\
+\texttt{protocol\_type} & 3  & 0 & 0.282 & 0.282 \\
+\texttt{service}        & 70 & 1 & 0.860 & 0.860 \\
+\texttt{flag}           & 11 & 0 & 0.775 & 0.775 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+None of the three columns has any missing values, so this replication
+isolates the sparsity mechanism specifically. Even \texttt{service}, at 70
+categories, has only 1 singleton among 125{,}973 rows---nothing like
+\texttt{name}'s 1{,}305 of 1{,}307---so the correction has nothing to
+remove. All three features are also strongly, legitimately associated with
+the attack label by design (network protocols and flags are diagnostic of
+specific attacks), so NSL-KDD offers no false-positive or false-negative
+case here; it confirms instead that the sparsity mechanism tracks
+observations-per-category, not cardinality by itself.
+
+\section{Practical Implications}
+
+Any feature that is a discrete, deterministic function of the
+outcome---assignment codes, post-event labels, administrative
+flags---can evade a thresholded association statistic while remaining
+fully visible to mutual information and single-feature performance. We
+recommend three concrete, independent practices: (1)~use bias-corrected
+Cram\'er's V on high-cardinality columns; (2)~screen missingness
+indicators as features in their own right, since informative missingness
+survives complete-case deletion in no standard tool we tested; (3)~do not
+rely on a single statistic. Titanic is among the most widely used datasets
+in introductory machine-learning instruction, and the screening practice it
+is commonly used to illustrate is exactly the one shown insufficient here;
+introductory material should cover bias-corrected association measures and
+missingness screening alongside it. The bias-corrected estimator and the
+full open-source pipeline (349 automated tests) are available at
+\url{https://github.com/jaimecano12/ml-framework}.
+
+\bibliographystyle{ACM-Reference-Format}
+\begin{thebibliography}{9}
+
+\bibitem{kaufman2012leakage}
+S. Kaufman, S. Rosset, C. Perlich, and O. Stitelman.
+2012.
+Leakage in data mining: Formalization, detection, and avoidance.
+\textit{ACM Transactions on Knowledge Discovery from Data} 6, 4 (2012), 1--21.
+
+\bibitem{bergsma2013bias}
+W. Bergsma.
+2013.
+A bias-correction for Cram\'er's V and Tschuprow's T.
+\textit{Journal of the Korean Statistical Society} 42, 3 (2013), 323--328.
+\url{https://doi.org/10.1016/j.jkss.2012.10.002}
+
+\bibitem{kraskov2004estimating}
+A. Kraskov, H. St\"{o}gbauer, and P. Grassberger.
+2004.
+Estimating mutual information.
+\textit{Physical Review E} 69, 6 (2004).
+
+\bibitem{tavallaee2009nslkdd}
+M. Tavallaee, E. Bagheri, W. Lu, and A. Ghorbani.
+2009.
+A detailed analysis of the KDD CUP 99 data set.
+In \textit{Proc.\ IEEE Symposium on Computational Intelligence for Security and Defense Applications (CISDA)}.
+
+\end{thebibliography}
+
+\end{document}

@@ -10,6 +10,7 @@ import pytest
 
 from src.leakage_checks import (
     _cramers_v,
+    _cramers_v_bias_corrected,
     _feature_target_association,
     check_id_column_leakage,
     check_leakage_risk_score,
@@ -113,6 +114,64 @@ class TestHelpers:
     def test_association_returns_zero_for_tiny_series(self):
         s = pd.Series([1.0, 2.0])
         assert _feature_target_association(s, s) == 0.0
+
+    def test_association_categorical_treats_missingness_as_informative(self):
+        """A categorical feature that is missing exactly for one outcome class
+        (e.g. a post-hoc 'boat' column recorded only for survivors) must not have
+        its association destroyed by dropping the missing rows -- the missing
+        indicator itself is the leakage signal."""
+        n = 200
+        target = pd.Series([0] * (n // 2) + [1] * (n // 2))
+        # Present (a real category) for every "1", missing for every "0".
+        feature = pd.Series(["cat_A"] * (n // 2) + ["cat_B"] * (n // 2))
+        feature[: n // 2] = np.nan
+        assert feature.isna().sum() == n // 2
+        assoc = _feature_target_association(feature, target)
+        assert assoc > 0.9
+
+    def test_association_categorical_drops_rows_with_missing_target(self):
+        """Missing *target* rows are still dropped -- an unknown label cannot be
+        associated with anything, unlike a missing feature value."""
+        feature = pd.Series(["A", "B", "A", "B", "A", "B", "A", "B"])
+        target = pd.Series([0, 1, 0, 1, np.nan, np.nan, 0, 1])
+        # Only the 6 rows with a known target should be used.
+        assoc = _feature_target_association(feature, target)
+        assert assoc == pytest.approx(1.0)
+
+    def test_cramers_v_bias_corrected_collapses_spurious_high_cardinality_association(self):
+        """A near-unique identifier column looks perfectly associated under raw V
+        purely from small-sample noise; the bias-corrected version should collapse
+        this toward zero (Bergsma, 2013)."""
+        rng = np.random.default_rng(1)
+        n = 300
+        # Every row its own category (like a name/ID column) vs. a random binary target.
+        x = pd.Series([f"cat_{i}" for i in range(n)])
+        y = pd.Series(rng.integers(0, 2, n).astype(str))
+        raw = _cramers_v(x, y)
+        corrected = _cramers_v_bias_corrected(x, y)
+        assert raw == pytest.approx(1.0)
+        assert corrected < 0.1
+
+    def test_cramers_v_bias_corrected_preserves_genuine_low_cardinality_association(self):
+        """A real, well-powered association (few categories, many rows per category)
+        should barely change under the correction."""
+        x = pd.Series(["A", "A", "B", "B"] * 50)
+        y = pd.Series(["X", "X", "Y", "Y"] * 50)
+        raw = _cramers_v(x, y)
+        corrected = _cramers_v_bias_corrected(x, y)
+        assert raw == pytest.approx(1.0)
+        assert corrected == pytest.approx(1.0, abs=0.05)
+
+    def test_cramers_v_bias_corrected_never_exceeds_raw(self):
+        rng = np.random.default_rng(2)
+        x = pd.Series(rng.choice(list("ABCDEFGH"), size=150))
+        y = pd.Series(rng.integers(0, 3, 150).astype(str))
+        assert _cramers_v_bias_corrected(x, y) <= _cramers_v(x, y) + 1e-9
+
+    def test_cramers_v_bias_corrected_returns_zero_for_tiny_series(self):
+        x = pd.Series(["A"])
+        y = pd.Series(["X"])
+        assert _cramers_v_bias_corrected(x, y) == 0.0
 
     def test_association_handles_nans(self):
         f = pd.Series([1.0, 2.0, None, 4.0, 5.0])

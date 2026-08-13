@@ -197,6 +197,16 @@ def _detect_ydata(df: pd.DataFrame, target: str, scenario: str) -> dict[str, boo
 
 
 def _detect_deepchecks(df: pd.DataFrame, target: str, scenario: str) -> dict[str, bool]:
+    """Run the Deepchecks leakage-relevant check that actually matches each scenario.
+
+    NOTE: as of deepchecks 0.19.1, `deepchecks.tabular.checks` fails to import under
+    NumPy >= 2.0 (`np.Inf` was removed; see deepchecks/tabular/checks/model_evaluation/
+    performance_bias.py). This function must be run in an environment with `numpy<2`
+    (e.g. `conda create -n deepchecks_compat python=3.11 && pip install "numpy<2"
+    "scikit-learn==1.4.2" "category-encoders==2.6.3" deepchecks`) — the surrounding
+    try/except intentionally reports that as an error rather than silently scoring it
+    as "not detected", which was the bug in the previous version of this function.
+    """
     try:
         import warnings
         with warnings.catch_warnings():
@@ -204,21 +214,30 @@ def _detect_deepchecks(df: pd.DataFrame, target: str, scenario: str) -> dict[str
             from deepchecks.tabular import Dataset
             from deepchecks.tabular.checks import (
                 FeatureLabelCorrelation,
-                StringMismatch,
+                IdentifierLabelCorrelation,
             )
 
-        ds = Dataset(df, label=target, cat_features=[c for c in df.select_dtypes(["object"]).columns])
-        detected = False
+        if scenario == "id_column":
+            # Dedicated check for identifier columns: needs the ID column declared as
+            # the dataset's index, not just an arbitrary high-cardinality feature.
+            id_col = "row_id"
+            ds = Dataset(df, label=target, index_name=id_col, cat_features=[])
+            check = IdentifierLabelCorrelation()
+            check.add_condition_pps_less_or_equal(0.2)
+            result = check.run(ds)
+            pps = float(result.value.get(id_col, 0.0))
+            detected = pps > 0.2
+            note = f"IdentifierLabelCorrelation, PPS({id_col})={pps:.3f}"
+        else:
+            ds = Dataset(df, label=target, cat_features=[c for c in df.select_dtypes(["object"]).columns])
+            check = FeatureLabelCorrelation()
+            check.add_condition_feature_pps_less_than(0.8)
+            result = check.run(ds)
+            max_pps = float(max(result.value.values())) if result.value else 0.0
+            detected = max_pps >= 0.8
+            note = f"FeatureLabelCorrelation, max PPS={max_pps:.3f}"
 
-        # FeatureLabelCorrelation check
-        try:
-            result = FeatureLabelCorrelation(ppscore_threshold=0.8).run(ds)
-            if result.passed_conditions() is not None and not all(result.passed_conditions()):
-                detected = True
-        except Exception:
-            pass
-
-        return {"detected": detected, "note": "PPS-based feature-label correlation only"}
+        return {"detected": detected, "note": note}
     except Exception as exc:
         return {"detected": False, "error": str(exc)}
 
